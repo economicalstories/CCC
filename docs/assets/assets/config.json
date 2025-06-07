@@ -1,0 +1,17 @@
+{
+  "speechService": "google",
+  "speechLocale": "en_AU", 
+  "fontSize": 48,
+  "theme": "system",
+  "saveTranscripts": true,
+  "features": {
+    "showTranscriptHistory": true,
+    "autoScrollEnabled": true,
+    "hapticFeedback": true
+  },
+  "speechSettings": {
+    "pauseDuration": 3,
+    "listenDuration": 30,
+    "confidenceThreshold": 0.5
+  }
+} 

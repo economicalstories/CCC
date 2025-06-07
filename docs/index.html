@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Making stories accessible to everyone. Real-time captions help those who are hard of hearing participate in conversations, presentations, and the stories happening around them.">
+  <meta name="keywords" content="accessibility, captions, hearing impaired, real-time, speech recognition">
+  <meta name="author" content="Closed Caption Companion">
+  
+  <!-- PWA meta tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="CC Companion">
+  <meta name="msapplication-TileColor" content="#0175C2">
+  <meta name="theme-color" content="#0175C2">
+  
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/Icon-512.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/Icon-512.png">
+  <link rel="shortcut icon" href="favicon.png">
+
+  <title>Closed Caption Companion - Real-time Accessibility</title>
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Preload critical resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+  <!-- Loading screen for better UX -->
+  <div id="loading" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0175C2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    z-index: 9999;
+  ">
+    <div style="
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 20px;
+    "></div>
+    <h2 style="margin: 0; font-weight: 300;">Loading CC Companion...</h2>
+    <p style="margin: 10px 0 0 0; opacity: 0.8;">Making stories accessible to everyone</p>
+  </div>
+  
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  
+  <script>
+    // Hide loading screen when app is ready
+    window.addEventListener('flutter-first-frame', function () {
+      const loading = document.getElementById('loading');
+      if (loading) {
+        loading.style.display = 'none';
+      }
+    });
+
+    // Register service worker for PWA functionality
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(registration) {
+            console.log('ServiceWorker registration successful');
+          })
+          .catch(function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+      });
+    }
+
+    // Install prompt handling
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      // You can show a custom install button here if desired
+      console.log('PWA install prompt available');
+    });
+
+    window.addEventListener('appinstalled', (evt) => {
+      console.log('PWA was installed');
+    });
+  </script>
+  
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
