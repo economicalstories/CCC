@@ -242,16 +242,6 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
-                        value: 'quick_fix',
-                        child: Row(
-                          children: [
-                            Icon(Icons.auto_fix_high, size: 16),
-                            SizedBox(width: 8),
-                            Text('Quick Fix Names'),
-                          ],
-                        ),
-                      ),
                     ],
                   ),
                 ],
@@ -305,6 +295,11 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
   }
 
   void _startEdit(CaptionEntry caption) {
+    final captionService = context.read<CaptionService>();
+    // Clear any current caption state to prevent interference
+    captionService.clearCurrentCaption();
+    captionService.setEditMode(false); // Ensure main screen edit mode is off
+
     setState(() {
       _editingId = caption.id;
       _editController.text = caption.text;
@@ -353,9 +348,6 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
       case 'delete':
         _deleteTranscript(context, caption, captionService);
         break;
-      case 'quick_fix':
-        _showQuickFixDialog(context, caption, captionService);
-        break;
     }
   }
 
@@ -382,15 +374,6 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.auto_fix_high),
-              title: const Text('Quick Fix Names'),
-              subtitle: const Text('Fix common name misspellings'),
-              onTap: () {
-                Navigator.pop(context);
-                _showQuickFixDialog(context, caption, captionService);
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.copy),
               title: const Text('Copy'),
               onTap: () {
@@ -408,225 +391,6 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showQuickFixDialog(BuildContext context, CaptionEntry caption,
-      CaptionService captionService) {
-    // Common name corrections
-    final Map<String, String> nameCorrections = {
-      'john': 'John',
-      'jane': 'Jane',
-      'mike': 'Mike',
-      'sarah': 'Sarah',
-      'david': 'David',
-      'mary': 'Mary',
-      'james': 'James',
-      'jennifer': 'Jennifer',
-      'robert': 'Robert',
-      'lisa': 'Lisa',
-      'michael': 'Michael',
-      'william': 'William',
-      'elizabeth': 'Elizabeth',
-      'christopher': 'Christopher',
-      'daniel': 'Daniel',
-      'matthew': 'Matthew',
-      'anthony': 'Anthony',
-      'mark': 'Mark',
-      'donald': 'Donald',
-      'steven': 'Steven',
-      'paul': 'Paul',
-      'andrew': 'Andrew',
-      'joshua': 'Joshua',
-      'kenneth': 'Kenneth',
-      'kevin': 'Kevin',
-      'brian': 'Brian',
-      'george': 'George',
-      'timothy': 'Timothy',
-      'ronald': 'Ronald',
-      'jason': 'Jason',
-      'edward': 'Edward',
-      'jeffrey': 'Jeffrey',
-      'ryan': 'Ryan',
-      'jacob': 'Jacob',
-      'gary': 'Gary',
-      'nicholas': 'Nicholas',
-      'eric': 'Eric',
-      'jonathan': 'Jonathan',
-      'stephen': 'Stephen',
-      'larry': 'Larry',
-      'justin': 'Justin',
-      'scott': 'Scott',
-      'brandon': 'Brandon',
-      'benjamin': 'Benjamin',
-      'samuel': 'Samuel',
-      'gregory': 'Gregory',
-      'alexander': 'Alexander',
-      'patrick': 'Patrick',
-      'frank': 'Frank',
-      'raymond': 'Raymond',
-      'jack': 'Jack',
-      'dennis': 'Dennis',
-      'jerry': 'Jerry',
-      'tyler': 'Tyler',
-      'aaron': 'Aaron',
-      'jose': 'Jose',
-      'henry': 'Henry',
-      'adam': 'Adam',
-      'douglas': 'Douglas',
-      'nathan': 'Nathan',
-      'peter': 'Peter',
-      'zachary': 'Zachary',
-      'kyle': 'Kyle',
-      'noah': 'Noah',
-      'alan': 'Alan',
-      'ethan': 'Ethan',
-      'jeremy': 'Jeremy',
-      'lionel': 'Lionel',
-      'mason': 'Mason',
-      'lucas': 'Lucas',
-      'logan': 'Logan',
-      'owen': 'Owen',
-      'carter': 'Carter',
-      'connor': 'Connor',
-      'caleb': 'Caleb',
-      'liam': 'Liam',
-      'emma': 'Emma',
-      'olivia': 'Olivia',
-      'ava': 'Ava',
-      'isabella': 'Isabella',
-      'sophia': 'Sophia',
-      'charlotte': 'Charlotte',
-      'mia': 'Mia',
-      'amelia': 'Amelia',
-      'harper': 'Harper',
-      'evelyn': 'Evelyn',
-      'abigail': 'Abigail',
-      'emily': 'Emily',
-      'ella': 'Ella',
-      'madison': 'Madison',
-      'scarlett': 'Scarlett',
-      'victoria': 'Victoria',
-      'aria': 'Aria',
-      'grace': 'Grace',
-      'chloe': 'Chloe',
-      'camila': 'Camila',
-      'penelope': 'Penelope',
-      'riley': 'Riley',
-      'layla': 'Layla',
-      'lillian': 'Lillian',
-      'nora': 'Nora',
-      'zoe': 'Zoe',
-      'mila': 'Mila',
-      'aubrey': 'Aubrey',
-      'hannah': 'Hannah',
-      'lily': 'Lily',
-      'addison': 'Addison',
-      'eleanor': 'Eleanor',
-      'natalie': 'Natalie',
-      'luna': 'Luna',
-      'savannah': 'Savannah',
-      'brooklyn': 'Brooklyn',
-      'leah': 'Leah',
-      'zara': 'Zara',
-      'stella': 'Stella',
-      'hazel': 'Hazel',
-      'ellie': 'Ellie',
-      'paisley': 'Paisley',
-      'audrey': 'Audrey',
-      'skylar': 'Skylar',
-      'violet': 'Violet',
-      'claire': 'Claire',
-      'bella': 'Bella',
-      'aurora': 'Aurora',
-      'lucy': 'Lucy',
-      'anna': 'Anna',
-      'samantha': 'Samantha',
-      'caroline': 'Caroline',
-      'genesis': 'Genesis',
-      'aaliyah': 'Aaliyah',
-      'kennedy': 'Kennedy',
-      'kinsley': 'Kinsley',
-      'allison': 'Allison',
-      'maya': 'Maya',
-      'sarah': 'Sarah',
-      'madelyn': 'Madelyn',
-      'adeline': 'Adeline',
-      'alexa': 'Alexa',
-      'ariana': 'Ariana',
-      'elena': 'Elena',
-      'gabriella': 'Gabriella',
-      'naomi': 'Naomi',
-      'alice': 'Alice',
-      'sadie': 'Sadie',
-      'hailey': 'Hailey',
-    };
-
-    String originalText = caption.text;
-    String fixedText = originalText;
-    List<String> foundIssues = [];
-
-    // Find and fix name capitalization issues
-    for (String word in originalText.split(' ')) {
-      String cleanWord = word.toLowerCase().replaceAll(RegExp(r'[^\w]'), '');
-      if (nameCorrections.containsKey(cleanWord)) {
-        String correctName = nameCorrections[cleanWord]!;
-        if (word.toLowerCase() == cleanWord && word != correctName) {
-          fixedText = fixedText.replaceAll(word, correctName);
-          foundIssues.add('$word → $correctName');
-        }
-      }
-    }
-
-    if (foundIssues.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No common name issues found'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Quick Fix Names'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Found these potential name corrections:'),
-            const SizedBox(height: 8),
-            ...foundIssues.map((issue) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text('• $issue',
-                      style: const TextStyle(fontFamily: 'monospace')),
-                )),
-            const SizedBox(height: 16),
-            const Text('Apply these corrections?'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              captionService.editCaption(caption.id, fixedText);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Applied ${foundIssues.length} corrections'),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
-            child: const Text('Apply'),
-          ),
-        ],
       ),
     );
   }

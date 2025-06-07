@@ -12,11 +12,14 @@ class CaptionService extends ChangeNotifier {
 
   // Current caption being displayed
   String _currentCaption = '';
+  String?
+      _lastRecordingTranscriptId; // Track the most recent transcript from recording
 
   // Streaming state
   bool _isStreaming = false;
   bool _isConnecting = false;
   bool _isEditMode = false;
+  bool _isEditingExistingTranscript = false; // Track if editing existing vs new
   String? _errorMessage;
 
   // Performance metrics
@@ -69,6 +72,8 @@ class CaptionService extends ChangeNotifier {
             : null,
       );
       _captions.insert(0, entry);
+      _lastRecordingTranscriptId =
+          entry.id; // Track this transcript for potential editing
       _cleanupOldCaptions();
     }
 
@@ -81,6 +86,7 @@ class CaptionService extends ChangeNotifier {
     _captionStreamController.add('');
     _speechStartTime = null;
     _captionStartTime = null;
+    _lastRecordingTranscriptId = null; // Clear transcript tracking
     notifyListeners();
   }
 
@@ -120,16 +126,27 @@ class CaptionService extends ChangeNotifier {
   }
 
   // Set edit mode
-  void setEditMode(bool editing) {
+  void setEditMode(bool editing, {bool editingExisting = false}) {
     _isEditMode = editing;
+    _isEditingExistingTranscript = editingExisting;
     notifyListeners();
   }
 
   // Finish editing and save current caption
   void finishEditing() {
     if (_isEditMode && _currentCaption.isNotEmpty) {
-      // Save the current caption as final
-      if (_settingsService?.saveTranscripts == true) {
+      // If we have a recent recording transcript, update it instead of creating new one
+      if (_lastRecordingTranscriptId != null && !_isEditingExistingTranscript) {
+        // Update the existing transcript from the recording
+        final success =
+            editCaption(_lastRecordingTranscriptId!, _currentCaption);
+        if (success) {
+          _lastRecordingTranscriptId =
+              null; // Clear the tracking since we've updated it
+        }
+      } else if (!_isEditingExistingTranscript &&
+          _settingsService?.saveTranscripts == true) {
+        // Only create new transcript if this is completely new content (not from recording)
         final entry = CaptionEntry(
           text: _currentCaption,
           timestamp: DateTime.now(),
@@ -140,6 +157,7 @@ class CaptionService extends ChangeNotifier {
       }
     }
     _isEditMode = false;
+    _isEditingExistingTranscript = false;
     notifyListeners();
   }
 
@@ -148,6 +166,7 @@ class CaptionService extends ChangeNotifier {
     final index = _captions.indexWhere((caption) => caption.id == id);
     if (index != -1) {
       _captions[index].updateText(newText);
+      // Don't interfere with current caption or edit mode - this is separate from main screen editing
       notifyListeners();
       return true;
     }

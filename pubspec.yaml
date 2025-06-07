@@ -37,6 +37,9 @@ dependencies:
   
   # Date formatting
   intl: ^0.18.1
+  
+  # URL launcher for opening links
+  url_launcher: ^6.2.1
 
 dev_dependencies:
   flutter_test:
