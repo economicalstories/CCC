@@ -53,18 +53,27 @@ Give hard-of-hearing people ultra-low-latency captions of live, in-person speech
 - **Azure Speech Service** - Alternative cloud option with comparable accuracy  
 - **Device Recognition** - Offline fallback using platform-native STT
 
+## 📱 Download & Installation
+
+### 🔽 Quick Download
+**[📱 Download Latest APK](https://github.com/economicalstories/CCC/releases/latest/download/app-release.apk)**
+
+*Or visit the [Releases page](https://github.com/economicalstories/CCC/releases) for all versions*
+
+---
+
 ## 📱 Installation & Setup
 
 ### Method 1: Install APK (Recommended)
-1. Download the latest APK from releases
-2. Transfer to your Android device
-3. Enable "Install from unknown sources" in Settings > Security
-4. Install and grant microphone permissions
+1. **Download** the APK using the link above
+2. **Transfer** to your Android device (via USB, email, or cloud)
+3. **Enable** "Install from unknown sources" in Settings > Security
+4. **Install** and grant microphone permissions when prompted
 
 ### Method 2: Build from Source
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/closed-caption-companion.git
+git clone https://github.com/economicalstories/CCC.git
 cd closed-caption-companion
 
 # Install dependencies
