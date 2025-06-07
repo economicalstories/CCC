@@ -1,0 +1,64 @@
+name: closed_caption_companion
+description: Ultra-low-latency captions for live speech
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Core dependencies
+  cupertino_icons: ^1.0.5
+  
+  # Note: Removed OpenAI WebSocket and secure storage dependencies
+  
+  # State management
+  provider: ^6.1.1
+  
+  # Permissions
+  permission_handler: ^11.0.1
+  
+  # Speech recognition (compatible version)
+  speech_to_text: ^7.0.0
+  
+  # Shared preferences for settings
+  shared_preferences: ^2.2.2
+  
+  # JSON handling
+  json_annotation: ^4.8.1
+  
+  # HTTP client
+  http: ^1.1.0
+  
+  # Note: Removed UUID dependency
+  
+  # Date formatting
+  intl: ^0.18.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.7
+  json_serializable: ^6.7.1
+
+flutter:
+  uses-material-design: true
+  
+  # Assets
+  assets:
+    - assets/config.json
+    - assets/ccc_logo.png
+  
+  # Fonts commented out until font files are added
+  # fonts:
+  #   - family: Roboto
+  #     fonts:
+  #       - asset: assets/fonts/Roboto-Regular.ttf
+  #       - asset: assets/fonts/Roboto-Bold.ttf
+  #         weight: 700
+  #       - asset: assets/fonts/Roboto-Medium.ttf
+  #         weight: 500 

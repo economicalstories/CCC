@@ -1,0 +1,48 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Error rules
+    always_use_package_imports: true
+    avoid_dynamic_calls: true
+    avoid_returning_null_for_future: true
+    avoid_type_to_string: true
+    cancel_subscriptions: true
+    close_sinks: true
+    comment_references: true
+    
+    # Style rules
+    always_declare_return_types: true
+    always_put_control_body_on_new_line: true
+    avoid_bool_literals_in_conditional_expressions: true
+    avoid_field_initializers_in_const_classes: true
+    avoid_unnecessary_containers: true
+    avoid_void_async: true
+    cascade_invocations: true
+    directives_ordering: true
+    flutter_style_todos: true
+    prefer_const_constructors: true
+    prefer_const_constructors_in_immutables: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_final_fields: true
+    prefer_final_in_for_each: true
+    prefer_final_locals: true
+    sort_constructors_first: true
+    sort_unnamed_constructors_first: true
+    unnecessary_await_in_return: true
+    use_colored_box: true
+    use_decorated_box: true
+    use_full_hex_values_for_flutter_colors: true
+    use_super_parameters: true
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "test/.test_coverage.dart"
+    - "lib/generated_plugin_registrant.dart"
+    
+  errors:
+    invalid_annotation_target: ignore
+    todo: ignore 
