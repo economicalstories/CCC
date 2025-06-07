@@ -55,22 +55,37 @@ Give hard-of-hearing people ultra-low-latency captions of live, in-person speech
 
 ## 📱 Download & Installation
 
-### 🔽 Quick Download
-**[📱 Download Latest APK](https://github.com/economicalstories/CCC/releases/latest/download/app-release.apk)**
+### 🔽 Get the App
 
-*Or visit the [Releases page](https://github.com/economicalstories/CCC/releases) for all versions*
+**📱 Android: Available Now**
+- Download the latest APK from [GitHub Releases](https://github.com/economicalstories/CCC/releases)
+- Ready to install on any Android device (Android 5.0+)
+
+**🍎 iPhone: Potentially Available**
+- iPhone version is technically possible if there's sufficient demand
+- Would require annual iOS App Store costs ($99/year) to distribute
+- [Contact us](mailto:contact@economicalstories.com) if you'd like to see an iPhone version
+
+**💻 Build from Source**
+- Clone this repository and build yourself
+- See instructions below
 
 ---
 
 ## 📱 Installation & Setup
 
-### Method 1: Install APK (Recommended)
-1. **Download** the APK using the link above
+### Method 1: Install Android APK (Recommended)
+1. **Download** the APK from [GitHub Releases](https://github.com/economicalstories/CCC/releases)
 2. **Transfer** to your Android device (via USB, email, or cloud)
 3. **Enable** "Install from unknown sources" in Settings > Security
 4. **Install** and grant microphone permissions when prompted
 
-### Method 2: Build from Source
+### Method 2: Build Your Own APK
+1. **Build the APK** using the source code instructions below
+2. **Transfer** `build/app/outputs/flutter-apk/app-release.apk` to your Android device
+3. **Follow installation steps** as above
+
+### Method 3: Development Install (Direct)
 ```bash
 # Clone repository
 git clone https://github.com/economicalstories/CCC.git
@@ -82,8 +97,22 @@ flutter pub get
 # Build for Android
 flutter build apk --release
 
-# Build for iOS (requires Xcode)
-flutter build ios --release
+# Find your APK at: build/app/outputs/flutter-apk/app-release.apk
+```
+
+### Method 3: Direct Development (For Developers)
+```bash
+# Prerequisites: Flutter SDK, Android device with USB debugging
+# Connect your Android device via USB
+
+# Clone and run directly
+git clone https://github.com/economicalstories/CCC.git
+cd CCC
+flutter pub get
+flutter run
+
+# Or install directly to connected device
+flutter install
 ```
 
 ## 🔧 Configuration
@@ -162,4 +191,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Built for all hard-of-hearing individuals who need reliable captions
 - Powered by Google Cloud Speech-to-Text, Azure Speech Service, and device recognition
 - Flutter community for excellent accessibility framework
-- Speech recognition technology providers for enabling real-time processing 
+- Speech recognition technology providers for enabling real-time processing
+
+---
+
+**Want an iPhone version?** [Let us know!](mailto:contact@economicalstories.com) If there's enough interest, we'll consider the annual App Store costs to bring CCC to iOS. 

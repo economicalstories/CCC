@@ -207,6 +207,14 @@ class CaptionService extends ChangeNotifier {
     _captions.removeWhere((caption) => caption.timestamp.isBefore(cutoff));
   }
 
+  // Update current caption text without saving to history (for editing)
+  void updateCurrentCaption(String text) {
+    final cleanText = text.replaceAll(RegExp(r'[\r\n]+'), ' / ');
+    _currentCaption = cleanText;
+    _captionStreamController.add(cleanText);
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _captionStreamController.close();

@@ -36,10 +36,9 @@ class _CaptionDisplayState extends State<CaptionDisplay> {
   }
 
   void _onTextChanged(String text, CaptionService captionService) {
-    // Update the caption service with the edited text
-    if (text.trim().isNotEmpty) {
-      captionService.addCaptionText(text, isFinal: true);
-    }
+    // Update the current caption text but don't save to history during editing
+    // The transcript will be saved when editing is finished via finishEditing()
+    captionService.updateCurrentCaption(text);
   }
 
   @override
