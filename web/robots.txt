@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: /sitemap.xml
+
+# Block unnecessary paths
+Disallow: /flutter_service_worker.js
+Disallow: /sw.js 
