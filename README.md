@@ -74,7 +74,7 @@ Give hard-of-hearing people ultra-low-latency captions of live, in-person speech
 ```bash
 # Clone repository
 git clone https://github.com/economicalstories/CCC.git
-cd closed-caption-companion
+cd CCC
 
 # Install dependencies
 flutter pub get
