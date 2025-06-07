@@ -353,12 +353,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Version 1.0.0',
+                    'Version 1.1.0',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Ultra-low-latency captions for live speech, powered by advanced speech recognition technology.',
+                    'Making stories accessible to everyone. Real-time captions help those who are hard of hearing participate fully in conversations, presentations, and the stories happening around them.',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ],

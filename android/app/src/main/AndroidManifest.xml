@@ -22,10 +22,11 @@
     </queries>
     
     <application
-        android:label="CCC"
+        android:label="Closed Caption Companion"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:description="@string/app_description">
         
         <activity
             android:name=".MainActivity"
