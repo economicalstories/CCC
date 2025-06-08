@@ -127,6 +127,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
 
+            // Profile Section
+            _SectionCard(
+              title: 'Profile',
+              child: Column(
+                children: [
+                  _SettingsTile(
+                    title: 'Your Name',
+                    subtitle: settings.userName ?? 'Not set',
+                    trailing: TextButton(
+                      onPressed: () => _editUserName(context, settings),
+                      child: const Text('EDIT'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This name will be shown when you join group caption rooms',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
+                        ),
+                  ),
+                ],
+              ),
+            ),
+
             // Font Size Section
             _SectionCard(
               title: 'Font Size',
@@ -627,6 +654,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     }
+  }
+
+  void _editUserName(BuildContext context, SettingsService settings) {
+    final controller = TextEditingController(text: settings.userName ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Edit Your Name',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Your name',
+            hintText: 'Enter your name',
+          ),
+          textCapitalization: TextCapitalization.words,
+          onSubmitted: (value) {
+            settings.setUserName(value.trim().isEmpty ? null : value.trim());
+            Navigator.pop(context);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              controller.dispose();
+              Navigator.pop(context);
+            },
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () {
+              settings.setUserName(controller.text.trim().isEmpty
+                  ? null
+                  : controller.text.trim());
+              controller.dispose();
+              Navigator.pop(context);
+            },
+            child: const Text('SAVE'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

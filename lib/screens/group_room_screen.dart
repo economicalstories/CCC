@@ -41,6 +41,9 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
     _audioService = context.read<AudioStreamingService>();
     _settingsService = context.read<SettingsService>();
 
+    // Inject settings service into room service
+    _roomService.setSettingsService(_settingsService);
+
     // Initialize audio service for the room
     _initializeAudio();
 
@@ -161,7 +164,8 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
   }
 
   Future<String?> _promptForName() async {
-    _nameController.text = _roomService.savedName ?? '';
+    // Pre-fill with saved name from settings
+    _nameController.text = _settingsService.userName ?? '';
 
     return showDialog<String>(
       context: context,
@@ -170,7 +174,7 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
         title: const Text('Enter Your Name'),
         content: TextField(
           controller: _nameController,
-          autofocus: true,
+          autofocus: _nameController.text.isEmpty,
           decoration: const InputDecoration(
             labelText: 'Your name',
             hintText: 'John',

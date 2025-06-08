@@ -8,6 +8,7 @@ class SettingsService extends ChangeNotifier {
   static const String _saveTranscriptsKey = 'saveTranscripts';
   static const String _speechServiceKey = 'speechService';
   static const String _speechLocaleKey = 'speechLocale';
+  static const String _userNameKey = 'userName';
 
   late SharedPreferences _prefs;
 
@@ -17,6 +18,7 @@ class SettingsService extends ChangeNotifier {
   bool _saveTranscripts = true;
   String _speechService = 'google'; // 'device', 'google', 'azure'
   String _speechLocale = 'en_AU'; // Default to Australian English
+  String? _userName;
 
   // Getters
   double get fontSize => _fontSize;
@@ -24,6 +26,7 @@ class SettingsService extends ChangeNotifier {
   bool get saveTranscripts => _saveTranscripts;
   String get speechService => _speechService;
   String get speechLocale => _speechLocale;
+  String? get userName => _userName;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -47,6 +50,9 @@ class SettingsService extends ChangeNotifier {
 
     // Load speech locale
     _speechLocale = _prefs.getString(_speechLocaleKey) ?? 'en_AU';
+
+    // Load user name
+    _userName = _prefs.getString(_userNameKey);
 
     notifyListeners();
   }
@@ -91,6 +97,17 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setUserName(String? name) async {
+    _userName = name?.trim();
+    if (_userName != null && _userName!.isNotEmpty) {
+      await _prefs.setString(_userNameKey, _userName!);
+    } else {
+      await _prefs.remove(_userNameKey);
+      _userName = null;
+    }
+    notifyListeners();
+  }
+
   // Convenience methods for font size adjustment
   Future<void> increaseFontSize() async {
     final newSize =
@@ -110,5 +127,6 @@ class SettingsService extends ChangeNotifier {
     await setSaveTranscripts(true);
     await setSpeechService('google');
     await setSpeechLocale('en_AU');
+    await setUserName(null);
   }
 }

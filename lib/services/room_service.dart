@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/room_participant.dart';
 import '../models/room_message.dart';
 import '../utils/room_code_generator.dart';
+import 'settings_service.dart';
 import 'dart:async';
 
 class RoomService extends ChangeNotifier {
@@ -10,9 +10,11 @@ class RoomService extends ChangeNotifier {
   String? _roomCode;
   String? _encryptionKey;
   String? _currentUserId;
-  String? _currentUserName;
   bool _isInRoom = false;
   bool _isSpeaking = false;
+
+  // Settings service reference
+  SettingsService? _settingsService;
 
   // Participants
   final List<RoomParticipant> _participants = [];
@@ -34,32 +36,23 @@ class RoomService extends ChangeNotifier {
   List<RoomParticipant> get participants => List.unmodifiable(_participants);
   RoomParticipant? get activeSpeaker => _activeSpeaker;
   List<RoomMessage> get messages => List.unmodifiable(_messages);
-  String? get savedName => _currentUserName;
+  String? get savedName => _settingsService?.userName;
 
   String get shareUrl {
     if (_roomCode == null || _encryptionKey == null) return '';
     return 'https://nanatalka.app/join/$_roomCode#key=$_encryptionKey';
   }
 
-  // Initialize from saved preferences
-  RoomService() {
-    _loadSavedName();
-  }
-
-  Future<void> _loadSavedName() async {
-    final prefs = await SharedPreferences.getInstance();
-    _currentUserName = prefs.getString('room_user_name');
-  }
-
-  Future<void> _saveName(String name) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('room_user_name', name);
-    _currentUserName = name;
+  // Set settings service reference
+  void setSettingsService(SettingsService settingsService) {
+    _settingsService = settingsService;
+    notifyListeners();
   }
 
   // Create a new room
   Future<void> createRoom(String userName) async {
-    await _saveName(userName);
+    // Save the user name to settings
+    await _settingsService?.setUserName(userName);
 
     _roomCode = RoomCodeGenerator.generate();
     _encryptionKey =
@@ -81,7 +74,8 @@ class RoomService extends ChangeNotifier {
   // Join an existing room
   Future<void> joinRoom(
       String roomCode, String encryptionKey, String userName) async {
-    await _saveName(userName);
+    // Save the user name to settings
+    await _settingsService?.setUserName(userName);
 
     _roomCode = roomCode;
     _encryptionKey = encryptionKey;
@@ -180,10 +174,12 @@ class RoomService extends ChangeNotifier {
       );
     } else {
       // Add new message
+      // Get the speaker name from participants
+      final speaker = _participants.firstWhere((p) => p.id == _currentUserId);
       final message = RoomMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         speakerId: _currentUserId!,
-        speakerName: _currentUserName!,
+        speakerName: speaker.name,
         text: text,
         timestamp: DateTime.now(),
         isFinal: isFinal,
