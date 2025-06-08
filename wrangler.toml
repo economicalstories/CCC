@@ -1,5 +1,0 @@
-name = "closedcaptioncompanion"
-compatibility_date = "2025-06-08"
-
-[assets]
-directory = "./build/web" 
