@@ -155,29 +155,63 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Logo only (no text)
-                  Image.asset(
-                    'assets/ccc_logo.png',
-                    height: 32,
-                    width: 32,
-                    semanticLabel: 'Closed Caption Companion',
-                    errorBuilder: (context, error, stackTrace) {
-                      // Fallback to text if image fails to load
-                      return Text(
-                        'CCC',
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      );
+                  // Exit button
+                  IconButton(
+                    icon: Icon(
+                      Icons.exit_to_app,
+                      size: Theme.of(context).iconTheme.size,
+                    ),
+                    onPressed: () async {
+                      // Clean up audio service before exiting
+                      await _audioService.disconnect();
+                      // Exit the app
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      } else {
+                        // For web browsers, show a dialog message
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Exit App'),
+                              content: const Text(
+                                  'Close this browser tab to exit the application.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('OK'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      }
                     },
+                    tooltip: 'Exit App',
                   ),
 
                   // Centered status indicator
                   const StatusIndicator(),
 
-                  // Settings button
+                  // Settings button with CCC icon
                   IconButton(
-                    icon: Icon(
-                      Icons.settings,
-                      size: Theme.of(context).iconTheme.size,
+                    icon: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Image.asset(
+                        'web/icons/Icon-192.png',
+                        width: (Theme.of(context).iconTheme.size ?? 24) * 1.0,
+                        height: (Theme.of(context).iconTheme.size ?? 24) * 1.0,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.medium,
+                        isAntiAlias: true,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Fallback to settings icon if image fails to load
+                          return Icon(
+                            Icons.settings,
+                            size: Theme.of(context).iconTheme.size,
+                          );
+                        },
+                      ),
                     ),
                     onPressed: _openSettings,
                     tooltip: 'Settings',

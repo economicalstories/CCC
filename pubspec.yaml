@@ -55,6 +55,7 @@ flutter:
   assets:
     - assets/config.json
     - assets/ccc_logo.png
+    - web/icons/
   
   # Fonts commented out until font files are added
   # fonts:

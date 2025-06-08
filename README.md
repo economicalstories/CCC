@@ -5,7 +5,7 @@
 ## 🚀 **Get CCC Now - Multiple Ways to Access**
 
 ### 🌐 **Progressive Web App (Recommended)**
-**✨ Install instantly on any device:**
+y**✨ Install instantly on any device:**
 - **Visit**: [ccc.economicalstories.com](https://ccc.economicalstories.com)
 - **Android**: Chrome → Menu → "Add to Home screen"
 - **iPhone**: Safari → Share → "Add to Home Screen"
