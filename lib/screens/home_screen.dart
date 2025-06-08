@@ -8,6 +8,7 @@ import '../widgets/push_to_talk_button.dart';
 import '../widgets/caption_display.dart';
 import '../widgets/status_indicator.dart';
 import 'settings_screen.dart';
+import 'group_room_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -318,6 +319,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ],
         ),
       ),
+      // Group button in bottom right corner
+      floatingActionButton: _isInitialized && _initError == null
+          ? FloatingActionButton.small(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GroupRoomScreen(),
+                  ),
+                );
+              },
+              tooltip: 'Group Captions',
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: const Icon(Icons.group),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
