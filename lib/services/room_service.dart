@@ -97,7 +97,7 @@ class RoomService extends ChangeNotifier {
     _participants.add(self);
 
     // Simulate other participants for testing
-    if (roomCode == 'TEST01') {
+    if (roomCode == 'CAT123') {
       _participants.add(RoomParticipant(
         id: 'user1',
         name: 'Alice',

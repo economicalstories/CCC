@@ -238,12 +238,70 @@ class _MessageBubbleState extends State<_MessageBubble> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (widget.isOwnMessage &&
-                            widget.message.isFinal &&
-                            !_isEditing)
+                        if (widget.isOwnMessage && widget.message.isFinal)
+                          if (_isEditing)
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 16),
+                                  onPressed: _cancelEdit,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 28,
+                                    minHeight: 28,
+                                  ),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withOpacity(0.5),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.check, size: 16),
+                                  onPressed: () => _saveEdit(context),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 28,
+                                    minHeight: 28,
+                                  ),
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ],
+                            )
+                          else
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 16),
+                              onPressed: _startEditing,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 28,
+                                minHeight: 28,
+                              ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.5),
+                            ),
+                        if (!_isEditing) ...[
+                          if (widget.isOwnMessage)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 16),
+                              onPressed: () {
+                                final roomService = context.read<RoomService>();
+                                roomService.dismissMessage(widget.message.id);
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 28,
+                                minHeight: 28,
+                              ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .error
+                                  .withOpacity(0.7),
+                            ),
                           IconButton(
-                            icon: const Icon(Icons.edit, size: 16),
-                            onPressed: _startEditing,
+                            icon: const Icon(Icons.check, size: 18),
+                            onPressed: widget.onDismiss,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(
                               minWidth: 32,
@@ -254,57 +312,39 @@ class _MessageBubbleState extends State<_MessageBubble> {
                                 .onSurface
                                 .withOpacity(0.5),
                           ),
-                        IconButton(
-                          icon: const Icon(Icons.check, size: 18),
-                          onPressed: widget.onDismiss,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
-                          ),
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.5),
-                        ),
+                        ],
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 if (_isEditing)
-                  Column(
-                    children: [
-                      TextField(
-                        controller: _editController,
-                        focusNode: _editFocusNode,
-                        maxLines: null,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          contentPadding: const EdgeInsets.all(8),
+                  TextField(
+                    controller: _editController,
+                    focusNode: _editFocusNode,
+                    maxLines: null,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.5),
                         ),
-                        autofocus: true,
-                        onSubmitted: (_) => _saveEdit(context),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: _cancelEdit,
-                            child: const Text('Cancel'),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () => _saveEdit(context),
-                            child: const Text('Save'),
-                          ),
-                        ],
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
-                    ],
+                      contentPadding: const EdgeInsets.all(8),
+                      isDense: true,
+                    ),
+                    autofocus: true,
+                    onSubmitted: (_) => _saveEdit(context),
                   )
                 else
                   Text(

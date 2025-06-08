@@ -213,7 +213,8 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
           autofocus: true,
           decoration: const InputDecoration(
             labelText: 'Room code',
-            hintText: 'ABC123',
+            hintText: 'CAT123',
+            helperText: '3 letters + 3 numbers',
           ),
           textCapitalization: TextCapitalization.characters,
           inputFormatters: [
@@ -221,7 +222,7 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
             LengthLimitingTextInputFormatter(6),
           ],
           onSubmitted: (value) {
-            if (value.length == 6) {
+            if (value.length == 6 && _isValidRoomCode(value)) {
               Navigator.of(context).pop(value);
             }
           },
@@ -234,7 +235,7 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
           TextButton(
             onPressed: () {
               final code = _roomCodeController.text;
-              if (code.length == 6) {
+              if (code.length == 6 && _isValidRoomCode(code)) {
                 Navigator.of(context).pop(code);
               }
             },
@@ -243,6 +244,15 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
         ],
       ),
     );
+  }
+
+  bool _isValidRoomCode(String code) {
+    if (code.length != 6) return false;
+    // Check first 3 characters are letters and last 3 are digits
+    final letterPart = code.substring(0, 3);
+    final digitPart = code.substring(3);
+    return RegExp(r'^[A-Z]{3}$').hasMatch(letterPart) &&
+        RegExp(r'^[0-9]{3}$').hasMatch(digitPart);
   }
 
   void _showError(String message) {
