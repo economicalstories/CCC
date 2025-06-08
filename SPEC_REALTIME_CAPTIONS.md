@@ -18,8 +18,8 @@ A peer-to-peer captioning system that enables inclusive conversations for people
 ┌─────────────────┐     WebSocket      ┌──────────────────┐
 │   User A (PWA)  │◄──────────────────►│                  │
 │   [Speaking]    │   (Encrypted)       │                  │
-└─────────────────┘                     │  Cloudflare      │
-                                        │  Worker          │
+└─────────────────┘                     │  PartyKit        │
+                                        │  Server          │
 ┌─────────────────┐     WebSocket      │                  │
 │   User B (PWA)  │◄──────────────────►│  (Encrypted      │
 │   [Viewing]     │   (Encrypted)       │   Relay Only)    │
@@ -30,6 +30,16 @@ A peer-to-peer captioning system that enables inclusive conversations for people
 │   [Viewing]     │   (Encrypted)       │                  │
 └─────────────────┘                     └──────────────────┘
 ```
+
+### Why PartyKit?
+
+PartyKit is ideal for this project because:
+- **Purpose-Built**: Designed specifically for real-time collaborative applications
+- **Free Tier**: Generous limits (1,000 concurrent connections, 10M messages/month)
+- **Simple API**: Much easier WebSocket handling than Cloudflare Workers
+- **Edge Deployment**: Low latency with global distribution
+- **Room Abstraction**: Built-in concept of "parties" maps perfectly to our rooms
+- **No Credit Card**: Can start development immediately without payment setup
 
 ## User Experience Flow
 
@@ -66,6 +76,7 @@ A peer-to-peer captioning system that enables inclusive conversations for people
 ### 5. Haptic Feedback
 - **New Speaker Alert**: 200ms strong vibration
 - **Ongoing Speech**: 50ms pulse every second while someone else speaks
+- **Speaker Stopped**: Double buzz (100ms, 50ms gap, 100ms) when someone finishes speaking
 - Respects device vibration settings
 
 ## Technical Implementation
@@ -203,58 +214,76 @@ interface RoomSync {
 }
 ```
 
-### Cloudflare Worker
+### PartyKit Server
 
 ```javascript
-// Minimal relay server - cannot read encrypted content
-class EncryptedRoom {
-  constructor(id) {
-    this.id = id;
-    this.participants = new Map(); // WebSocket -> participantId
-    this.createdAt = Date.now();
-    this.lastActivity = Date.now();
+// server.js - Minimal relay server that cannot read encrypted content
+export default class CaptionRoom {
+  constructor(party) {
+    this.party = party;
+    this.connections = new Map(); // connection -> participantId
   }
 
-  broadcast(message, excludeSocket) {
-    this.lastActivity = Date.now();
-    for (const [socket, _] of this.participants) {
-      if (socket !== excludeSocket && socket.readyState === 1) {
-        socket.send(message);
+  async onConnect(connection, ctx) {
+    // Connection established, wait for join message
+    connection.addEventListener("message", (evt) => {
+      this.handleMessage(connection, evt.data);
+    });
+
+    connection.addEventListener("close", () => {
+      this.removeParticipant(connection);
+    });
+  }
+
+  handleMessage(connection, message) {
+    try {
+      const data = JSON.parse(message);
+      
+      if (data.type === "join") {
+        this.connections.set(connection, data.participantId);
+        this.broadcast(JSON.stringify({
+          type: "encrypted",
+          roomId: this.party.id,
+          senderId: "system",
+          event: "participantJoined"
+        }), connection);
+      } else if (data.type === "encrypted") {
+        // Relay encrypted message to all other participants
+        this.broadcast(message, connection);
       }
+    } catch (e) {
+      console.error("Invalid message:", e);
     }
   }
 
-  addParticipant(socket, participantId) {
-    this.participants.set(socket, participantId);
-    // Notify others (encrypted)
-    this.broadcast(JSON.stringify({
-      type: "encrypted",
-      roomId: this.id,
-      senderId: "system",
-      event: "participantJoined"
-    }), socket);
+  removeParticipant(connection) {
+    const participantId = this.connections.get(connection);
+    this.connections.delete(connection);
+    
+    if (participantId) {
+      this.broadcast(JSON.stringify({
+        type: "encrypted",
+        roomId: this.party.id,
+        senderId: "system",
+        event: "participantLeft",
+        participantId
+      }));
+    }
   }
 
-  removeParticipant(socket) {
-    const participantId = this.participants.get(socket);
-    this.participants.delete(socket);
-    // Notify others (encrypted)
-    this.broadcast(JSON.stringify({
-      type: "encrypted",
-      roomId: this.id,
-      senderId: "system",
-      event: "participantLeft",
-      participantId
-    }));
+  broadcast(message, excludeConnection) {
+    this.party.getConnections().forEach((conn) => {
+      if (conn !== excludeConnection) {
+        conn.send(message);
+      }
+    });
   }
+}
 
-  get isEmpty() {
-    return this.participants.size === 0;
-  }
-
-  get age() {
-    return Date.now() - this.createdAt;
-  }
+// partykit.json configuration
+{
+  "name": "caption-rooms",
+  "main": "server.js"
 }
 ```
 
@@ -347,11 +376,17 @@ class EncryptedRoom {
 
 ## Implementation Plan
 
+### Phase 0: UI/UX Design & Local Prototype (Current Focus)
+1. Design and implement room UI components
+2. Create local mock of multi-user experience
+3. Implement haptic feedback patterns
+4. Test core interactions without server
+
 ### Phase 1: Core Infrastructure
-1. Create GitHub branch: `feature/realtime-captions`
-2. Set up Cloudflare Worker project
-3. Implement basic WebSocket relay
-4. Add room management logic
+1. Set up PartyKit project
+2. Implement basic WebSocket relay
+3. Add room management logic
+4. Deploy to PartyKit's free tier
 
 ### Phase 2: Encryption Layer
 1. Implement key generation/sharing
@@ -379,7 +414,7 @@ class EncryptedRoom {
 
 ## Technical Requirements
 
-- **Cloudflare Workers**: Paid plan for WebSocket support
+- **PartyKit**: Free tier includes 1,000 concurrent connections and 10M messages/month
 - **PWA Updates**: React components for room UI
 - **Browser Support**: Chrome 80+, Safari 14+, Firefox 85+
 - **Network**: Requires stable internet connection 
