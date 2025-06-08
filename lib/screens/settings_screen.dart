@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/settings_service.dart';
 import '../services/caption_service.dart';
 import '../utils/theme_config.dart';
+import '../utils/room_code_generator.dart';
 import 'transcript_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -143,6 +145,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'This name will be shown when you join group caption rooms',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
+                        ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Room Section
+            _SectionCard(
+              title: 'Room Settings',
+              child: Column(
+                children: [
+                  _SettingsTile(
+                    title: 'Current Room',
+                    subtitle: settings.roomCode ?? 'Not in a room',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (settings.roomCode != null)
+                          TextButton(
+                            onPressed: () => _leaveRoom(context, settings),
+                            child: const Text('LEAVE'),
+                          ),
+                        TextButton(
+                          onPressed: () => _changeRoom(context, settings),
+                          child: const Text('CHANGE'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your room code persists across app sessions. Share it with others to let them join your captions.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -700,6 +739,127 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  void _leaveRoom(BuildContext context, SettingsService settings) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Leave Room?',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        content: Text(
+          'You will leave room ${settings.roomCode}. You can create a new room or join another one later.',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () {
+              settings.setRoomCode(null);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Left room')),
+              );
+            },
+            child: Text(
+              'LEAVE',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _changeRoom(BuildContext context, SettingsService settings) {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Change Room',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Enter a room code to join, or leave empty to create a new room.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Room code (optional)',
+                hintText: 'CAT123',
+                helperText: '3 letters + 3 numbers',
+              ),
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+                LengthLimitingTextInputFormatter(6),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              controller.dispose();
+              Navigator.pop(context);
+            },
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () {
+              final code = controller.text.trim();
+              if (code.isEmpty) {
+                // Generate new room code
+                final newCode = RoomCodeGenerator.generate();
+                settings.setRoomCode(newCode);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Created new room: $newCode')),
+                );
+              } else if (code.length == 6 && _isValidRoomCode(code)) {
+                // Join existing room
+                settings.setRoomCode(code);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Joining room: $code')),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Invalid room code format'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+              controller.dispose();
+            },
+            child: const Text('CONFIRM'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isValidRoomCode(String code) {
+    if (code.length != 6) return false;
+    // Check first 3 characters are letters and last 3 are digits
+    final letterPart = code.substring(0, 3);
+    final digitPart = code.substring(3);
+    return RegExp(r'^[A-Z]{3}$').hasMatch(letterPart) &&
+        RegExp(r'^[0-9]{3}$').hasMatch(digitPart);
   }
 }
 

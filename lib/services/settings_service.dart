@@ -9,6 +9,7 @@ class SettingsService extends ChangeNotifier {
   static const String _speechServiceKey = 'speechService';
   static const String _speechLocaleKey = 'speechLocale';
   static const String _userNameKey = 'userName';
+  static const String _roomCodeKey = 'roomCode';
 
   late SharedPreferences _prefs;
 
@@ -19,6 +20,7 @@ class SettingsService extends ChangeNotifier {
   String _speechService = 'google'; // 'device', 'google', 'azure'
   String _speechLocale = 'en_AU'; // Default to Australian English
   String? _userName;
+  String? _roomCode;
 
   // Getters
   double get fontSize => _fontSize;
@@ -27,6 +29,7 @@ class SettingsService extends ChangeNotifier {
   String get speechService => _speechService;
   String get speechLocale => _speechLocale;
   String? get userName => _userName;
+  String? get roomCode => _roomCode;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -53,6 +56,9 @@ class SettingsService extends ChangeNotifier {
 
     // Load user name
     _userName = _prefs.getString(_userNameKey);
+
+    // Load room code
+    _roomCode = _prefs.getString(_roomCodeKey);
 
     notifyListeners();
   }
@@ -108,6 +114,17 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setRoomCode(String? code) async {
+    _roomCode = code?.trim();
+    if (_roomCode != null && _roomCode!.isNotEmpty) {
+      await _prefs.setString(_roomCodeKey, _roomCode!);
+    } else {
+      await _prefs.remove(_roomCodeKey);
+      _roomCode = null;
+    }
+    notifyListeners();
+  }
+
   // Convenience methods for font size adjustment
   Future<void> increaseFontSize() async {
     final newSize =
@@ -128,5 +145,6 @@ class SettingsService extends ChangeNotifier {
     await setSpeechService('google');
     await setSpeechLocale('en_AU');
     await setUserName(null);
+    await setRoomCode(null);
   }
 }

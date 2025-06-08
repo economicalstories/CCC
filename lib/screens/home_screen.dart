@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../services/caption_service.dart';
+import 'package:intl/intl.dart';
+import '../services/room_service.dart';
 import '../services/settings_service.dart';
 import '../services/audio_streaming_service.dart';
-import '../widgets/push_to_talk_button.dart';
-import '../widgets/caption_display.dart';
-import '../widgets/status_indicator.dart';
+import '../widgets/room_caption_display.dart';
+import '../utils/room_code_generator.dart';
 import 'settings_screen.dart';
-import 'group_room_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -18,12 +17,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  late RoomService _roomService;
   late AudioStreamingService _audioService;
-  late CaptionService _captionService;
   late SettingsService _settingsService;
 
   bool _isInitialized = false;
   String? _initError;
+  bool _showShareOptions = false;
 
   @override
   void initState() {
@@ -31,12 +31,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
 
     // Get services
+    _roomService = RoomService();
     _audioService = context.read<AudioStreamingService>();
-    _captionService = context.read<CaptionService>();
     _settingsService = context.read<SettingsService>();
 
-    // Inject settings service into caption service
-    _captionService.setSettingsService(_settingsService);
+    // Inject settings service into room service
+    _roomService.setSettingsService(_settingsService);
 
     // Initialize
     _initialize();
@@ -45,7 +45,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    // Stop any ongoing speech
+    if (_roomService.isSpeaking) {
+      _audioService.stopStreaming();
+    }
     _audioService.disconnect();
+    _roomService.dispose();
     super.dispose();
   }
 
@@ -54,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused) {
       // Stop streaming when app goes to background
       if (_audioService.isStreaming) {
-        _handlePressUp();
+        _handleMicRelease();
       }
     }
   }
@@ -64,20 +69,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // Set up audio service callbacks
       _audioService.onTranscription = (text, isFinal) {
         print('Received transcription: "$text" (final: $isFinal)');
-        _captionService.addCaptionText(text, isFinal: isFinal);
+        if (_roomService.isSpeaking) {
+          _roomService.addCaptionText(text, isFinal: isFinal);
+        }
       };
 
       _audioService.onError = (error) {
-        _captionService.setError(error);
-        HapticFeedback.mediumImpact();
+        if (_roomService.isSpeaking) {
+          HapticFeedback.mediumImpact();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error)),
+          );
+        }
       };
 
       _audioService.onConnected = () {
-        _captionService.setConnecting(false);
+        setState(() {
+          _isInitialized = true;
+        });
       };
 
       _audioService.onDisconnected = () {
-        _captionService.setStreaming(false);
+        if (_roomService.isSpeaking) {
+          _roomService.stopSpeaking();
+        }
       };
 
       // Initialize audio service
@@ -85,6 +100,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         speechService: _settingsService.speechService,
         settingsService: _settingsService,
       );
+
+      // Auto-create or join saved room
+      await _initializeRoom();
 
       setState(() {
         _isInitialized = true;
@@ -96,38 +114,76 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _handlePressDown() async {
-    if (!_isInitialized) return;
+  Future<void> _initializeRoom() async {
+    // Check if we have a saved room code
+    final savedRoomCode = _settingsService.roomCode;
+    final userName = _settingsService.userName ?? 'User';
 
-    // Haptic feedback
-    HapticFeedback.selectionClick();
-
-    // Clear any previous error and current caption for fresh start
-    _captionService.clearError();
-    _captionService.clearCurrentCaption();
-
-    // Connect if not connected
-    if (!_audioService.isConnected) {
-      _captionService.setConnecting(true);
-      await _audioService.connect();
-    }
-
-    // Start streaming
-    if (_audioService.isConnected) {
-      _captionService.setStreaming(true);
-      await _audioService.startStreaming();
+    if (savedRoomCode != null) {
+      // Try to join the saved room
+      try {
+        await _roomService.joinRoom(
+            savedRoomCode, 'mock-encryption-key', userName);
+      } catch (e) {
+        // If joining fails, create a new room
+        await _createNewRoom(userName);
+      }
+    } else {
+      // Create a new room
+      await _createNewRoom(userName);
     }
   }
 
-  Future<void> _handlePressUp() async {
+  Future<void> _createNewRoom(String userName) async {
+    await _roomService.createRoom(userName);
+    // Save the room code for next time
+    await _settingsService.setRoomCode(_roomService.roomCode);
+  }
+
+  Future<void> _handleMicPress() async {
     if (!_isInitialized) return;
 
-    // Haptic feedback
-    HapticFeedback.selectionClick();
+    if (_roomService.activeSpeaker != null) {
+      // Someone else is speaking
+      HapticFeedback.heavyImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${_roomService.activeSpeaker!.name} is speaking...'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    } else {
+      // Start speaking
+      HapticFeedback.selectionClick();
+      _roomService.startSpeaking();
 
-    // Stop streaming
-    await _audioService.stopStreaming();
-    _captionService.setStreaming(false);
+      // Start speech recognition
+      if (!_audioService.isConnected) {
+        await _audioService.connect();
+      }
+
+      if (_audioService.isConnected) {
+        await _audioService.startStreaming();
+      }
+    }
+  }
+
+  Future<void> _handleMicRelease() async {
+    if (_roomService.isSpeaking) {
+      HapticFeedback.selectionClick();
+
+      // Stop speech recognition
+      await _audioService.stopStreaming();
+
+      _roomService.stopSpeaking();
+    }
+  }
+
+  void _toggleShareOptions() {
+    setState(() {
+      _showShareOptions = !_showShareOptions;
+    });
+    HapticFeedback.lightImpact();
   }
 
   void _openSettings() {
@@ -137,206 +193,328 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         builder: (context) => const SettingsScreen(),
       ),
     ).then((_) {
-      // Reinitialize if settings changed
-      _audioService.disconnect();
-      _initialize();
+      // Check if room code changed in settings
+      if (_settingsService.roomCode != _roomService.roomCode) {
+        // Room changed, reinitialize
+        _roomService.leaveRoom();
+        _audioService.disconnect();
+        _initialize();
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header with settings button
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Exit button
-                  IconButton(
-                    icon: Icon(
-                      Icons.exit_to_app,
-                      size: Theme.of(context).iconTheme.size,
-                    ),
-                    onPressed: () async {
-                      // Clean up audio service before exiting
-                      await _audioService.disconnect();
-                      // Exit the app
-                      if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                      } else {
-                        // For web browsers, show a dialog message
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text('Exit App'),
-                              content: const Text(
-                                  'Close this browser tab to exit the application.'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('OK'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      }
-                    },
-                    tooltip: 'Exit App',
-                  ),
-
-                  // Centered status indicator
-                  const StatusIndicator(),
-
-                  // Settings button with CCC icon
-                  IconButton(
-                    icon: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.asset(
-                        'web/icons/Icon-192.png',
-                        width: (Theme.of(context).iconTheme.size ?? 24) * 1.0,
-                        height: (Theme.of(context).iconTheme.size ?? 24) * 1.0,
-                        fit: BoxFit.contain,
-                        filterQuality: FilterQuality.medium,
-                        isAntiAlias: true,
-                        errorBuilder: (context, error, stackTrace) {
-                          // Fallback to settings icon if image fails to load
-                          return Icon(
-                            Icons.settings,
-                            size: Theme.of(context).iconTheme.size,
-                          );
-                        },
-                      ),
-                    ),
-                    onPressed: _openSettings,
-                    tooltip: 'Settings',
-                  ),
-                ],
-              ),
-            ),
-
-            // Caption display
-            const Expanded(
-              child: CaptionDisplay(),
-            ),
-
-            // Transcript saving notification
-            Consumer<SettingsService>(
-              builder: (context, settings, _) {
-                if (_captionService.isStreaming && settings.saveTranscripts) {
-                  return Container(
-                    width: double.infinity,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.3),
-                      ),
-                    ),
-                    child: Row(
+    return ChangeNotifierProvider.value(
+      value: _roomService,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header with room info
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Top row with exit and settings
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(
-                          Icons.save,
-                          size: 16,
-                          color:
-                              Theme.of(context).colorScheme.onPrimaryContainer,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Transcript kept temporarily • Will save when you release button',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onPrimaryContainer,
-                                ),
-                          ),
-                        ),
+                        // Exit button
                         IconButton(
                           icon: Icon(
-                            Icons.settings,
-                            size: 16,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
+                            Icons.exit_to_app,
+                            size: Theme.of(context).iconTheme.size,
+                          ),
+                          onPressed: () async {
+                            await _audioService.disconnect();
+                            if (Navigator.of(context).canPop()) {
+                              Navigator.of(context).pop();
+                            } else {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: const Text('Exit App'),
+                                    content: const Text(
+                                        'Close this browser tab to exit the application.'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            }
+                          },
+                          tooltip: 'Exit App',
+                        ),
+
+                        // Room code pill
+                        if (_roomService.isInRoom)
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(
+                                  text: _roomService.roomCode ?? ''));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Room code copied!'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.room,
+                                    size: 16,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _roomService.roomCode ?? '',
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                        // Settings button
+                        IconButton(
+                          icon: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: Image.asset(
+                              'web/icons/Icon-192.png',
+                              width: (Theme.of(context).iconTheme.size ?? 24) *
+                                  1.0,
+                              height: (Theme.of(context).iconTheme.size ?? 24) *
+                                  1.0,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.medium,
+                              isAntiAlias: true,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.settings,
+                                  size: Theme.of(context).iconTheme.size,
+                                );
+                              },
+                            ),
                           ),
                           onPressed: _openSettings,
-                          padding: EdgeInsets.zero,
-                          constraints:
-                              const BoxConstraints(minWidth: 24, minHeight: 24),
+                          tooltip: 'Settings',
                         ),
                       ],
                     ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-
-            // Error or init message
-            if (_initError != null)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  _initError!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontSize: Theme.of(context).textTheme.bodyLarge?.fontSize,
-                  ),
-                  textAlign: TextAlign.center,
+                  ],
                 ),
-              )
-            else if (!_isInitialized)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
               ),
 
-            // Push to talk button - smaller padding for smaller button
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: PushToTalkButton(
-                onPressDown: _handlePressDown,
-                onPressUp: _handlePressUp,
-                enabled: _isInitialized && _initError == null,
-              ),
-            ),
-          ],
-        ),
-      ),
-      // Group button in bottom right corner
-      floatingActionButton: _isInitialized && _initError == null
-          ? FloatingActionButton.small(
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const GroupRoomScreen(),
+              // Share options (when expanded)
+              if (_showShareOptions && _roomService.isInRoom)
+                Container(
+                  color: Theme.of(context).colorScheme.surface,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // Placeholder for QR code
+                      Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.qr_code,
+                                size: 48,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'QR Code',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Others can join with code: ${_roomService.roomCode}',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${_roomService.participants.length} ${_roomService.participants.length == 1 ? 'person' : 'people'} in room',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.6),
+                            ),
+                      ),
+                    ],
                   ),
-                );
-              },
-              tooltip: 'Group Captions',
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: const Icon(Icons.group),
-            )
-          : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+                ),
+
+              // Caption display
+              const Expanded(
+                child: RoomCaptionDisplay(),
+              ),
+
+              // Active speaker indicator
+              if (_roomService.activeSpeaker != null)
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.mic,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${_roomService.activeSpeaker!.name} is speaking...',
+                        style: TextStyle(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Audio error message
+              if (_initError != null)
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Speech recognition unavailable: $_initError',
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Microphone button
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: GestureDetector(
+                  onTapDown: (_) => _handleMicPress(),
+                  onTapUp: (_) => _handleMicRelease(),
+                  onTapCancel: _handleMicRelease,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _roomService.isSpeaking
+                          ? Theme.of(context).colorScheme.error
+                          : _roomService.activeSpeaker != null
+                              ? Theme.of(context).disabledColor
+                              : Theme.of(context).colorScheme.primary,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_roomService.isSpeaking
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(context).colorScheme.primary)
+                              .withOpacity(0.3),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        _roomService.activeSpeaker != null &&
+                                !_roomService.isSpeaking
+                            ? Icons.mic_off
+                            : Icons.mic,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Status text
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Text(
+                  _roomService.isSpeaking
+                      ? 'Release to stop'
+                      : _roomService.activeSpeaker != null
+                          ? 'Please wait...'
+                          : 'Hold to speak',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Share button
+        floatingActionButton: _isInitialized && _initError == null
+            ? FloatingActionButton.small(
+                onPressed: _toggleShareOptions,
+                tooltip: 'Share Room',
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                child: Icon(_showShareOptions ? Icons.close : Icons.share),
+              )
+            : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      ),
     );
   }
 }
