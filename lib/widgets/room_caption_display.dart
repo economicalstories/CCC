@@ -252,8 +252,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
                                   ),
                                   color: Theme.of(context)
                                       .colorScheme
-                                      .onSurface
-                                      .withOpacity(0.5),
+                                      .error
+                                      .withOpacity(0.7),
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.check, size: 16),
@@ -268,37 +268,45 @@ class _MessageBubbleState extends State<_MessageBubble> {
                               ],
                             )
                           else
-                            IconButton(
-                              icon: const Icon(Icons.edit, size: 16),
-                              onPressed: _startEditing,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 28,
-                                minHeight: 28,
-                              ),
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.5),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit, size: 16),
+                                  onPressed: _startEditing,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 28,
+                                    minHeight: 28,
+                                  ),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withOpacity(0.5),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline,
+                                      size: 16),
+                                  onPressed: () {
+                                    final roomService =
+                                        context.read<RoomService>();
+                                    roomService
+                                        .dismissMessage(widget.message.id);
+                                  },
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 28,
+                                    minHeight: 28,
+                                  ),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .error
+                                      .withOpacity(0.7),
+                                ),
+                              ],
                             ),
-                        if (!_isEditing) ...[
-                          if (widget.isOwnMessage)
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 16),
-                              onPressed: () {
-                                final roomService = context.read<RoomService>();
-                                roomService.dismissMessage(widget.message.id);
-                              },
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 28,
-                                minHeight: 28,
-                              ),
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .error
-                                  .withOpacity(0.7),
-                            ),
+                        // Show dismiss check only for non-own messages or non-final messages
+                        if (!widget.isOwnMessage ||
+                            (!widget.message.isFinal && !_isEditing))
                           IconButton(
                             icon: const Icon(Icons.check, size: 18),
                             onPressed: widget.onDismiss,
@@ -312,7 +320,6 @@ class _MessageBubbleState extends State<_MessageBubble> {
                                 .onSurface
                                 .withOpacity(0.5),
                           ),
-                        ],
                       ],
                     ),
                   ],
