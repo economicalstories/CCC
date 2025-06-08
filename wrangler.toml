@@ -1,4 +1,4 @@
-name = "closed-caption-companion"
+name = "closedcaptioncompanion"
 compatibility_date = "2025-06-08"
 
 [assets]
@@ -9,4 +9,4 @@ binding = "ASSETS"
 name = "ASSETS"
 
 [env.production]
-name = "closed-caption-companion" 
+name = "closedcaptioncompanion" 
