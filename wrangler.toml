@@ -1,0 +1,12 @@
+name = "closed-caption-companion"
+compatibility_date = "2025-06-08"
+
+[assets]
+directory = "./build/web"
+binding = "ASSETS"
+
+[[assets.bindings]]
+name = "ASSETS"
+
+[env.production]
+name = "closed-caption-companion" 

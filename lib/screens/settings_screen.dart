@@ -341,6 +341,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
 
+            // Privacy & Data Management Section
+            _SectionCard(
+              title: 'Privacy & Data Management',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your privacy matters. Here\'s how we handle your data:',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Audio Processing
+                  _PrivacyItem(
+                    icon: Icons.mic,
+                    title: 'Audio Processing',
+                    description:
+                        'Audio is processed in real-time for speech recognition. Audio data is never stored on your device or transmitted to our servers.',
+                  ),
+
+                  // Speech Recognition
+                  _PrivacyItem(
+                    icon: Icons.cloud_outlined,
+                    title: 'Speech Recognition Services',
+                    description:
+                        'When using cloud services (Google, Azure), audio is sent securely to their servers for processing. We don\'t store this data.',
+                  ),
+
+                  // Local Storage
+                  _PrivacyItem(
+                    icon: Icons.storage,
+                    title: 'Local Storage',
+                    description:
+                        'Captions are only stored locally on your device when enabled. You can clear this data anytime in the Transcripts section.',
+                  ),
+
+                  // No Analytics
+                  _PrivacyItem(
+                    icon: Icons.analytics_outlined,
+                    title: 'No Analytics or Tracking',
+                    description:
+                        'We don\'t collect usage data, analytics, or personal information. Your conversations remain private.',
+                  ),
+
+                  // Open Source
+                  _PrivacyItem(
+                    icon: Icons.code,
+                    title: 'Open Source',
+                    description:
+                        'This app is open source. You can review the code to verify our privacy practices.',
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Contact and Links
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceVariant
+                          .withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.help_outline,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _launchURL(
+                                'https://github.com/economicalstories/CCC'),
+                            child: Text(
+                              'View Source Code',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // About Section
             _SectionCard(
               title: 'About',
@@ -620,6 +719,67 @@ class _SettingsTile extends StatelessWidget {
             ),
           ),
           trailing,
+        ],
+      ),
+    );
+  }
+}
+
+class _PrivacyItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const _PrivacyItem({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.7),
+                        height: 1.4,
+                      ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

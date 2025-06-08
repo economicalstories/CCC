@@ -22,4 +22,14 @@ flutter pub get
 echo "Building web app..."
 flutter build web --release
 
-echo "Build complete!" 
+echo "Build complete!"
+
+# List output files for verification
+echo "Build output contents:"
+ls -la build/web/
+
+echo "Deployment ready!"
+
+# Deploy via Wrangler (for Cloudflare Workers)
+echo "Deploying to Cloudflare Workers..."
+npx wrangler deploy --assets=build/web 

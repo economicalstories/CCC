@@ -1,11 +1,38 @@
 # Closed-Caption Companion (CCC)
 
+**Making stories accessible to everyone.** Real-time captions help those who are hard of hearing participate in conversations, presentations, and the stories happening around them.
+
+## 🚀 **Get CCC Now - Multiple Ways to Access**
+
+### 🌐 **Progressive Web App (Recommended)**
+**✨ Install instantly on any device:**
+- **Visit**: [ccc.economicalstories.com](https://ccc.economicalstories.com)
+- **Android**: Chrome → Menu → "Add to Home screen"
+- **iPhone**: Safari → Share → "Add to Home Screen"
+- **Desktop**: Chrome → Install icon in address bar
+
+*No download required - works offline after first visit!*
+
+### 📱 **Native Android App**
+**Download the APK for full native experience:**
+- **Get it**: [GitHub Releases](https://github.com/economicalstories/CCC/releases)
+- **Requirements**: Android 5.0+ (21 API level)
+- **Install**: Enable "Unknown sources" → Install APK
+- **Benefits**: Better performance, deeper system integration
+
+### 🍎 **iPhone App Store Version**
+**Interested in an iOS App Store version?**
+- **Contact us**: [contact@economicalstories.com](mailto:contact@economicalstories.com)
+- We're considering iOS development based on user demand
+- App Store publishing requires annual fees - your interest helps justify the cost!
+
+---
+
+## 🎯 What is CCC?
+
 Ultra-low-latency captions for live, in-person speech through a simple push-to-talk mobile interface, powered by advanced speech recognition technology.
 
-## 🎯 Vision
-
-Give hard-of-hearing people ultra-low-latency captions of live, in-person speech through a simple push-to-talk mobile interface. The app is designed to be:
-
+### Key Benefits
 - **Accessible** → Very large, high-contrast text; voice-over compatible; top-aligned text display
 - **Affordable** → No ongoing subscription required; works out of the box
 - **Private** → No audio recordings stored; data processed securely
@@ -32,10 +59,81 @@ Give hard-of-hearing people ultra-low-latency captions of live, in-person speech
 - **Status Indicators** - Clear visual feedback (READY, LIVE, CONNECTING, ERROR)
 - **Australian English Default** - Optimized for Australian accents out of the box
 
+## 🔧 Quick Setup
+
+### Using the PWA (ccc.economicalstories.com)
+1. **Visit** [ccc.economicalstories.com](https://ccc.economicalstories.com)
+2. **Grant** microphone permission when prompted
+3. **Install** by adding to home screen (optional but recommended)
+4. **Start** using immediately - hold the big button and speak!
+
+### Using Android APK
+1. **Download** latest APK from [Releases](https://github.com/economicalstories/CCC/releases)
+2. **Enable** "Install from unknown sources" in Android Settings
+3. **Install** the APK and grant microphone permissions
+4. **Open** CCC and start captioning!
+
+### Speech Service Configuration
+The app works immediately with device recognition, but for better accuracy:
+1. **Open Settings** in the app
+2. **Choose** from:
+   - **Google Speech-to-Text** (Recommended) - Best accuracy, requires internet
+   - **Azure Speech Service** - Alternative cloud option
+   - **Device Speech Recognition** - Offline capability
+
+## 🔒 Privacy Policy & Data Management
+
+**Your privacy is paramount. Here's exactly how we handle your data:**
+
+### Audio Processing
+- **Real-time processing only**: Audio is processed in real-time for speech recognition
+- **No storage**: Audio data is never stored on your device or transmitted to our servers
+- **Immediate disposal**: Audio is discarded immediately after processing
+
+### Speech Recognition Services
+- **Cloud services**: When using Google or Azure speech recognition, audio is sent securely to their servers for processing
+- **Secure transmission**: All data is encrypted in transit using TLS/SSL
+- **No retention**: We do not store, log, or retain any audio data sent to cloud services
+- **Third-party policies**: Cloud providers have their own data policies - we recommend reviewing them
+
+### Local Data Storage
+- **Captions only**: Only text captions are stored locally on your device when you enable transcript saving
+- **24-hour limit**: Transcripts are automatically cleared after 24 hours
+- **User control**: You can clear transcript data anytime in the app settings
+- **No cloud sync**: Transcript data never leaves your device
+
+### Analytics and Tracking
+- **No analytics**: We do not collect usage analytics, crash reports, or behavioral data
+- **No tracking**: No user tracking, cookies, or persistent identifiers
+- **No personal data**: We do not collect names, emails, or any personal information
+- **No account required**: The app works without registration or accounts
+
+### Open Source Transparency
+- **Public code**: This app is fully open source - you can review all code
+- **Verifiable privacy**: Our privacy practices can be verified by examining the source code
+- **Community oversight**: Open source allows community review of privacy practices
+- **No hidden features**: What you see in the code is what the app does
+
+### Data Sharing
+- **No data sharing**: We do not share, sell, or distribute any user data
+- **No third-party integration**: Except for speech recognition services, no data goes to third parties
+- **No advertising**: No ads, no ad networks, no advertising data collection
+
+### User Rights
+- **Full control**: You have complete control over transcript data storage
+- **Immediate deletion**: Clear all data instantly through app settings
+- **No cloud dependency**: Core functionality works offline with device speech recognition
+- **Transparent operation**: All data handling is visible and controllable by you
+
+### Contact for Privacy Questions
+If you have questions about our privacy practices:
+- **Email**: [contact@economicalstories.com](mailto:contact@economicalstories.com)
+- **Source Code**: [github.com/economicalstories/CCC](https://github.com/economicalstories/CCC)
+
 ## 🛠️ Technical Architecture
 
 ### Stack
-- **Frontend**: Flutter 3.32+ (Android & iOS)
+- **Frontend**: Flutter 3.32+ (Web, Android & iOS)
 - **Primary STT**: Google Cloud Speech-to-Text (default)
 - **Alternative STT**: Azure Speech Service, Device recognition
 - **Audio Processing**: Flutter speech_to_text with enhanced reliability
@@ -53,76 +151,7 @@ Give hard-of-hearing people ultra-low-latency captions of live, in-person speech
 - **Azure Speech Service** - Alternative cloud option with comparable accuracy  
 - **Device Recognition** - Offline fallback using platform-native STT
 
-## 📱 Download & Installation
-
-### 🔽 Get the App
-
-**📱 Android: Available Now**
-- Download the latest APK from [GitHub Releases](https://github.com/economicalstories/CCC/releases)
-- Ready to install on any Android device (Android 5.0+)
-
-**🍎 iPhone: Potentially Available**
-- iPhone version is technically possible if there's sufficient demand
-- Would require annual iOS App Store costs ($99/year) to distribute
-- [Contact us](mailto:contact@economicalstories.com) if you'd like to see an iPhone version
-
-**💻 Build from Source**
-- Clone this repository and build yourself
-- See instructions below
-
----
-
-## 📱 Installation & Setup
-
-### Method 1: Install Android APK (Recommended)
-1. **Download** the APK from [GitHub Releases](https://github.com/economicalstories/CCC/releases)
-2. **Transfer** to your Android device (via USB, email, or cloud)
-3. **Enable** "Install from unknown sources" in Settings > Security
-4. **Install** and grant microphone permissions when prompted
-
-### Method 2: Build Your Own APK
-1. **Build the APK** using the source code instructions below
-2. **Transfer** `build/app/outputs/flutter-apk/app-release.apk` to your Android device
-3. **Follow installation steps** as above
-
-### Method 3: Development Install (Direct)
-```bash
-# Clone repository
-git clone https://github.com/economicalstories/CCC.git
-cd CCC
-
-# Install dependencies
-flutter pub get
-
-# Build for Android
-flutter build apk --release
-
-# Find your APK at: build/app/outputs/flutter-apk/app-release.apk
-```
-
-### Method 3: Direct Development (For Developers)
-```bash
-# Prerequisites: Flutter SDK, Android device with USB debugging
-# Connect your Android device via USB
-
-# Clone and run directly
-git clone https://github.com/economicalstories/CCC.git
-cd CCC
-flutter pub get
-flutter run
-
-# Or install directly to connected device
-flutter install
-```
-
-## 🔧 Configuration
-
-### Speech Service Selection
-1. Open Settings in the app
-2. Choose from:
-   - **Google Speech-to-Text** (Recommended) - Best accuracy
-   - **Azure Speech Service** - Alternative cloud option
-   - **Device Speech Recognition** - Offline capability
+## ⚙️ Configuration Options
 
 ### Language Options
 - **Australian English** (en_AU) - Default, optimized for Australian accents
@@ -143,14 +172,6 @@ flutter install
 - **Offline Capability**: Device recognition works without internet
 - **Text Continuity**: Maintains text across service restarts
 
-## 🔒 Privacy & Security
-
-- **No Cloud Storage**: Audio is processed in real-time, never stored
-- **Local Transcripts**: 24-hour local storage only, automatically cleared
-- **Secure Processing**: TLS encryption for cloud speech services
-- **No Account Required**: Works immediately without registration
-- **Minimal Permissions**: Only requires microphone access
-
 ## 🎨 User Experience
 
 ### Simple Operation
@@ -166,20 +187,50 @@ flutter install
 - **Haptic feedback** for button presses
 - **Top-aligned text** for consistent reading position
 
-## 🤝 Contributing
+## 🔧 Building from Source
 
-Contributions welcome! Please read contributing guidelines before submitting PRs.
+### Prerequisites
+- Flutter 3.0+ installed
+- Android Studio (for Android builds)
+- Xcode (for iOS builds, macOS only)
 
 ### Development Setup
 ```bash
-# Ensure Flutter 3.0+ is installed
-flutter doctor
+# Clone repository
+git clone https://github.com/economicalstories/CCC.git
+cd CCC
+
+# Install dependencies
+flutter pub get
 
 # Run in development mode
 flutter run
 
+# Build for production
+flutter build web --release          # PWA
+flutter build apk --release          # Android
+flutter build ios --release          # iOS (macOS only)
+```
+
+### Build Outputs
+- **PWA**: `build/web/` (ready for web hosting)
+- **Android APK**: `build/app/outputs/flutter-apk/app-release.apk`
+- **iOS**: `build/ios/iphoneos/Runner.app` (requires code signing)
+
+## 🤝 Contributing
+
+Contributions welcome! Please read contributing guidelines before submitting PRs.
+
+### Development Commands
+```bash
+# Ensure Flutter 3.0+ is installed
+flutter doctor
+
 # Run tests
 flutter test
+
+# Analyze code
+flutter analyze
 ```
 
 ## 📄 License
@@ -195,4 +246,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Want an iPhone version?** [Let us know!](mailto:contact@economicalstories.com) If there's enough interest, we'll consider the annual App Store costs to bring CCC to iOS. 
+**Questions? Feedback? Want iOS version?** 
+📧 [contact@economicalstories.com](mailto:contact@economicalstories.com) 
