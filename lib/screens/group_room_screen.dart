@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../services/room_service.dart';
+import '../services/audio_streaming_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/room_caption_display.dart';
 import '../utils/room_code_generator.dart';
 
@@ -21,16 +23,26 @@ class GroupRoomScreen extends StatefulWidget {
 
 class _GroupRoomScreenState extends State<GroupRoomScreen> {
   late RoomService _roomService;
+  late AudioStreamingService _audioService;
+  late SettingsService _settingsService;
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _roomCodeController = TextEditingController();
 
   bool _isJoining = false;
   bool _showQrCode = false;
+  bool _isAudioInitialized = false;
+  String? _audioInitError;
 
   @override
   void initState() {
     super.initState();
     _roomService = RoomService();
+    _audioService = context.read<AudioStreamingService>();
+    _settingsService = context.read<SettingsService>();
+
+    // Initialize audio service for the room
+    _initializeAudio();
 
     // Auto-join if room code provided
     if (widget.roomCode != null && widget.encryptionKey != null) {
@@ -40,8 +52,59 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
     }
   }
 
+  Future<void> _initializeAudio() async {
+    try {
+      // Set up audio service callbacks
+      _audioService.onTranscription = (text, isFinal) {
+        print('Room: Received transcription: "$text" (final: $isFinal)');
+        if (_roomService.isSpeaking) {
+          _roomService.addCaptionText(text, isFinal: isFinal);
+        }
+      };
+
+      _audioService.onError = (error) {
+        if (_roomService.isSpeaking) {
+          HapticFeedback.mediumImpact();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error)),
+          );
+        }
+      };
+
+      _audioService.onConnected = () {
+        setState(() {
+          _isAudioInitialized = true;
+        });
+      };
+
+      _audioService.onDisconnected = () {
+        if (_roomService.isSpeaking) {
+          _roomService.stopSpeaking();
+        }
+      };
+
+      // Initialize audio service
+      await _audioService.initialize(
+        speechService: _settingsService.speechService,
+        settingsService: _settingsService,
+      );
+
+      setState(() {
+        _isAudioInitialized = true;
+      });
+    } catch (e) {
+      setState(() {
+        _audioInitError = e.toString();
+      });
+    }
+  }
+
   @override
   void dispose() {
+    // Stop any ongoing speech recognition
+    if (_roomService.isSpeaking) {
+      _audioService.stopStreaming();
+    }
     _nameController.dispose();
     _roomCodeController.dispose();
     _roomService.dispose();
@@ -193,7 +256,9 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
     HapticFeedback.lightImpact();
   }
 
-  void _handleMicPress() {
+  Future<void> _handleMicPress() async {
+    if (!_isAudioInitialized) return;
+
     if (_roomService.activeSpeaker != null) {
       // Someone else is speaking
       HapticFeedback.heavyImpact();
@@ -207,12 +272,25 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
       // Start speaking
       HapticFeedback.selectionClick();
       _roomService.startSpeaking();
+
+      // Start speech recognition
+      if (!_audioService.isConnected) {
+        await _audioService.connect();
+      }
+
+      if (_audioService.isConnected) {
+        await _audioService.startStreaming();
+      }
     }
   }
 
-  void _handleMicRelease() {
+  Future<void> _handleMicRelease() async {
     if (_roomService.isSpeaking) {
       HapticFeedback.selectionClick();
+
+      // Stop speech recognition
+      await _audioService.stopStreaming();
+
       _roomService.stopSpeaking();
     }
   }
@@ -305,6 +383,18 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('Back'),
             ),
+            if (_audioInitError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(
+                  _audioInitError!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
           ],
         ),
       ),
@@ -330,7 +420,11 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
           child: Row(
             children: [
               IconButton(
-                onPressed: () {
+                onPressed: () async {
+                  // Stop any ongoing speech
+                  if (_roomService.isSpeaking) {
+                    await _audioService.stopStreaming();
+                  }
                   roomService.leaveRoom();
                   Navigator.of(context).pop();
                 },
@@ -473,6 +567,34 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
                   '${roomService.activeSpeaker!.name} is speaking...',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Audio error message
+        if (!_showQrCode && _audioInitError != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            color: Theme.of(context).colorScheme.errorContainer,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Speech recognition unavailable: $_audioInitError',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],

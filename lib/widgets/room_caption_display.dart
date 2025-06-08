@@ -116,7 +116,7 @@ class _RoomCaptionDisplayState extends State<RoomCaptionDisplay> {
   }
 }
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends StatefulWidget {
   final RoomMessage message;
   final bool isOwnMessage;
   final VoidCallback onDismiss;
@@ -129,22 +129,71 @@ class _MessageBubble extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<_MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends State<_MessageBubble> {
+  final TextEditingController _editController = TextEditingController();
+  final FocusNode _editFocusNode = FocusNode();
+  bool _isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _editController.text = widget.message.text;
+  }
+
+  @override
+  void dispose() {
+    _editController.dispose();
+    _editFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _startEditing() {
+    setState(() {
+      _isEditing = true;
+      _editController.text = widget.message.text;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _editFocusNode.requestFocus();
+    });
+  }
+
+  void _saveEdit(BuildContext context) {
+    final roomService = context.read<RoomService>();
+    roomService.editMessage(widget.message.id, _editController.text);
+    setState(() {
+      _isEditing = false;
+    });
+    _editFocusNode.unfocus();
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _isEditing = false;
+      _editController.text = widget.message.text;
+    });
+    _editFocusNode.unfocus();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final timeFormat = DateFormat.jm();
 
     return AnimatedOpacity(
-      opacity: message.dismissed ? 0.0 : 1.0,
+      opacity: widget.message.dismissed ? 0.0 : 1.0,
       duration: const Duration(milliseconds: 300),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         margin: EdgeInsets.only(
           bottom: 8,
-          left: isOwnMessage ? 48 : 0,
-          right: isOwnMessage ? 0 : 48,
+          left: widget.isOwnMessage ? 48 : 0,
+          right: widget.isOwnMessage ? 0 : 48,
         ),
         child: Card(
           elevation: 1,
-          color: isOwnMessage
+          color: widget.isOwnMessage
               ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
               : Theme.of(context).colorScheme.surface,
           child: Padding(
@@ -159,20 +208,20 @@ class _MessageBubble extends StatelessWidget {
                       child: Row(
                         children: [
                           Text(
-                            message.speakerName,
+                            widget.message.speakerName,
                             style: Theme.of(context)
                                 .textTheme
                                 .labelMedium
                                 ?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: isOwnMessage
+                                  color: widget.isOwnMessage
                                       ? Theme.of(context).colorScheme.primary
                                       : Theme.of(context).colorScheme.onSurface,
                                 ),
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            timeFormat.format(message.timestamp),
+                            timeFormat.format(widget.message.timestamp),
                             style: Theme.of(context)
                                 .textTheme
                                 .labelSmall
@@ -186,27 +235,83 @@ class _MessageBubble extends StatelessWidget {
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.check, size: 18),
-                      onPressed: onDismiss,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.5),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.isOwnMessage &&
+                            widget.message.isFinal &&
+                            !_isEditing)
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 16),
+                            onPressed: _startEditing,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.5),
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.check, size: 18),
+                          onPressed: widget.onDismiss,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.5),
+                        ),
+                      ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  message.text,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                if (!message.isFinal)
+                if (_isEditing)
+                  Column(
+                    children: [
+                      TextField(
+                        controller: _editController,
+                        focusNode: _editFocusNode,
+                        maxLines: null,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.all(8),
+                        ),
+                        autofocus: true,
+                        onSubmitted: (_) => _saveEdit(context),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: _cancelEdit,
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () => _saveEdit(context),
+                            child: const Text('Save'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                else
+                  Text(
+                    widget.message.text,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                if (!widget.message.isFinal)
                   Row(
                     children: [
                       Icon(

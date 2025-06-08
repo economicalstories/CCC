@@ -209,6 +209,18 @@ class RoomService extends ChangeNotifier {
     }
   }
 
+  // Edit a message
+  void editMessage(String messageId, String newText) {
+    final index = _messages.indexWhere((m) => m.id == messageId);
+    if (index >= 0) {
+      _messages[index] = _messages[index].copyWith(
+        text: newText,
+        isFinal: true, // Edited messages are always final
+      );
+      notifyListeners();
+    }
+  }
+
   // Haptic feedback management
   void _startHapticFeedback() {
     // Initial strong buzz is handled by the UI
