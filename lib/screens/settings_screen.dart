@@ -163,20 +163,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   _SettingsTile(
                     title: 'Current Room',
-                    subtitle: settings.roomCode ?? 'Not in a room',
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (settings.roomCode != null)
-                          TextButton(
-                            onPressed: () => _leaveRoom(context, settings),
-                            child: const Text('LEAVE'),
-                          ),
-                        TextButton(
-                          onPressed: () => _changeRoom(context, settings),
-                          child: const Text('CHANGE'),
-                        ),
-                      ],
+                    subtitle: settings.roomCode ?? 'Loading...',
+                    trailing: TextButton(
+                      onPressed: () => _changeRoom(context, settings),
+                      child: const Text('CHANGE'),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -741,41 +731,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _leaveRoom(BuildContext context, SettingsService settings) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Leave Room?',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        content: Text(
-          'You will leave room ${settings.roomCode}. You can create a new room or join another one later.',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () {
-              settings.setRoomCode(null);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Left room')),
-              );
-            },
-            child: Text(
-              'LEAVE',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _changeRoom(BuildContext context, SettingsService settings) {
     final controller = TextEditingController();
 
@@ -790,7 +745,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Enter a room code to join, or leave empty to create a new room.',
+              'Enter a room code to join, or leave empty to generate a new room.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
@@ -799,7 +754,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Room code (optional)',
-                hintText: 'CAT123',
+                hintText: 'CAT123 or leave empty',
                 helperText: '3 letters + 3 numbers',
               ),
               textCapitalization: TextCapitalization.characters,
@@ -827,14 +782,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 settings.setRoomCode(newCode);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Created new room: $newCode')),
+                  SnackBar(content: Text('Generated new room: $newCode')),
                 );
               } else if (code.length == 6 && _isValidRoomCode(code)) {
                 // Join existing room
                 settings.setRoomCode(code);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Joining room: $code')),
+                  SnackBar(content: Text('Changed to room: $code')),
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -846,7 +801,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
               controller.dispose();
             },
-            child: const Text('CONFIRM'),
+            child: const Text('CHANGE'),
           ),
         ],
       ),

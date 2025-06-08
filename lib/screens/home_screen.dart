@@ -280,7 +280,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.room,
+                                    _roomService.participants.length > 1
+                                        ? Icons.group
+                                        : Icons.person,
                                     size: 16,
                                     color: Theme.of(context)
                                         .colorScheme
