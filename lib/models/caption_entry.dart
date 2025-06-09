@@ -1,17 +1,25 @@
 import 'package:intl/intl.dart';
 
 class CaptionEntry {
-  final String id;
-  String text;
-  final DateTime timestamp;
-  final int? latencyMs;
-
   CaptionEntry({
     String? id,
     required this.text,
     required this.timestamp,
     this.latencyMs,
   }) : id = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+  factory CaptionEntry.fromJson(Map<String, dynamic> json) {
+    return CaptionEntry(
+      id: json['id'] as String?,
+      text: json['text'] as String,
+      timestamp: DateTime.parse(json['timestamp'] as String),
+      latencyMs: json['latencyMs'] as int?,
+    );
+  }
+  final String id;
+  String text;
+  final DateTime timestamp;
+  final int? latencyMs;
 
   String get formattedTime {
     return DateFormat('HH:mm:ss').format(timestamp);
@@ -37,14 +45,5 @@ class CaptionEntry {
       'timestamp': timestamp.toIso8601String(),
       'latencyMs': latencyMs,
     };
-  }
-
-  factory CaptionEntry.fromJson(Map<String, dynamic> json) {
-    return CaptionEntry(
-      id: json['id'] as String?,
-      text: json['text'] as String,
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      latencyMs: json['latencyMs'] as int?,
-    );
   }
 }

@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:uuid/uuid.dart';
-import 'package:ulid/ulid.dart';
-import 'package:closed_caption_companion/models/room_participant.dart';
+
 import 'package:closed_caption_companion/models/room_message.dart';
-import 'package:closed_caption_companion/utils/room_code_generator.dart';
+import 'package:closed_caption_companion/models/room_participant.dart';
 import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:closed_caption_companion/utils/room_code_generator.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:ulid/ulid.dart';
+import 'package:uuid/uuid.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 class RoomCheckResult {
   RoomCheckResult({

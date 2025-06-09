@@ -121,7 +121,7 @@ void main() {
     testWidgets('Stopping listening should reset clear state',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: RoomCaptionDisplay(
               isAudioInitialized: true,

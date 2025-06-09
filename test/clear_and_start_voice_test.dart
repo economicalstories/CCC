@@ -61,7 +61,7 @@ void main() {
         (WidgetTester tester) async {
       // Test when STT is not ready
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: RoomCaptionDisplay(
               isAudioInitialized: true,
@@ -79,7 +79,7 @@ void main() {
 
       // Rebuild with STT ready
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: RoomCaptionDisplay(
               isAudioInitialized: true,
@@ -101,7 +101,7 @@ void main() {
     testWidgets('Hint text changes based on listening and STT ready state',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: RoomCaptionDisplay(
               isAudioInitialized: true,

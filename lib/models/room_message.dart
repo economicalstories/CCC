@@ -1,12 +1,4 @@
 class RoomMessage {
-  final String id;
-  final String speakerId;
-  final String speakerName;
-  final String text;
-  final DateTime timestamp;
-  final bool isFinal;
-  final bool dismissed;
-
   RoomMessage({
     required this.id,
     required this.speakerId,
@@ -16,6 +8,13 @@ class RoomMessage {
     this.isFinal = false,
     this.dismissed = false,
   });
+  final String id;
+  final String speakerId;
+  final String speakerName;
+  final String text;
+  final DateTime timestamp;
+  final bool isFinal;
+  final bool dismissed;
 
   RoomMessage copyWith({
     String? id,

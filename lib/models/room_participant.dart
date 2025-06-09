@@ -1,8 +1,4 @@
 class RoomParticipant {
-  final String id;
-  final String name;
-  final DateTime? joinedAt;
-
   RoomParticipant({
     required this.id,
     required this.name,
@@ -18,6 +14,9 @@ class RoomParticipant {
           : null,
     );
   }
+  final String id;
+  final String name;
+  final DateTime? joinedAt;
 
   Map<String, dynamic> toJson() {
     return {

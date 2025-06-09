@@ -1,14 +1,13 @@
+import 'dart:async';
+
+import 'package:closed_caption_companion/screens/settings_screen.dart';
+import 'package:closed_caption_companion/services/audio_streaming_service.dart';
+import 'package:closed_caption_companion/services/room_service.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:closed_caption_companion/widgets/room_caption_display.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-import 'package:closed_caption_companion/services/room_service.dart';
-import 'package:closed_caption_companion/services/settings_service.dart';
-import 'package:closed_caption_companion/services/audio_streaming_service.dart';
-import 'package:closed_caption_companion/widgets/room_caption_display.dart';
-import 'package:closed_caption_companion/utils/room_code_generator.dart';
-import 'package:closed_caption_companion/screens/settings_screen.dart';
-import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

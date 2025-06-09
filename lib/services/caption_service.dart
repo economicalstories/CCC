@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../models/caption_entry.dart';
-import 'settings_service.dart';
+import 'package:closed_caption_companion/models/caption_entry.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
 
 class CaptionService extends ChangeNotifier {
   // Caption history (last 24 hours)

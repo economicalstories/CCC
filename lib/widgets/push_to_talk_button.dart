@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/caption_service.dart';
+import 'package:closed_caption_companion/services/caption_service.dart';
 
 class PushToTalkButton extends StatefulWidget {
-  final VoidCallback onPressDown;
-  final VoidCallback onPressUp;
-  final bool enabled;
-
   const PushToTalkButton({
     Key? key,
     required this.onPressDown,
     required this.onPressUp,
     this.enabled = true,
   }) : super(key: key);
+  final VoidCallback onPressDown;
+  final VoidCallback onPressUp;
+  final bool enabled;
 
   @override
   State<PushToTalkButton> createState() => _PushToTalkButtonState();
@@ -89,8 +88,8 @@ class _PushToTalkButtonState extends State<PushToTalkButton>
     // Button size - smaller for more text space
     final screenWidth = MediaQuery.of(context).size.width;
     final buttonSize = screenWidth * 0.35; // 35% of screen width (smaller)
-    final minButtonSize = 120.0;
-    final maxButtonSize = 180.0;
+    const minButtonSize = 120.0;
+    const maxButtonSize = 180.0;
     final finalButtonSize = buttonSize.clamp(minButtonSize, maxButtonSize);
 
     return Semantics(
@@ -210,13 +209,12 @@ class _PushToTalkButtonState extends State<PushToTalkButton>
 
 // Pulse animation widget
 class _PulseAnimation extends StatefulWidget {
-  final double size;
-  final Color color;
-
   const _PulseAnimation({
     required this.size,
     required this.color,
   });
+  final double size;
+  final Color color;
 
   @override
   State<_PulseAnimation> createState() => _PulseAnimationState();

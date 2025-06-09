@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:permission_handler/permission_handler.dart';
+
 import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class AudioStreamingService {
   // Speech to text engine

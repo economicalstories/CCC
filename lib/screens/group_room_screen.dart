@@ -10,10 +10,10 @@ import 'package:closed_caption_companion/utils/room_code_generator.dart';
 
 class GroupRoomScreen extends StatefulWidget {
   const GroupRoomScreen({
-    Key? key,
+    super.key,
     this.roomCode,
     this.encryptionKey,
-  }) : super(key: key);
+  });
   final String? roomCode;
   final String? encryptionKey;
 

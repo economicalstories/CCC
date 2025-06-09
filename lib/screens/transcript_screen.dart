@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../services/caption_service.dart';
-import '../models/caption_entry.dart';
+import 'package:closed_caption_companion/services/caption_service.dart';
+import 'package:closed_caption_companion/models/caption_entry.dart';
 
 class TranscriptScreen extends StatefulWidget {
-  const TranscriptScreen({Key? key}) : super(key: key);
+  const TranscriptScreen({super.key});
 
   @override
   State<TranscriptScreen> createState() => _TranscriptScreenState();
@@ -108,7 +108,10 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
-          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withOpacity(0.3),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -256,8 +259,8 @@ class _TranscriptScreenState extends State<TranscriptScreen> {
                 focusNode: _editFocusNode,
                 maxLines: null,
                 style: Theme.of(context).textTheme.bodyLarge,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
                   hintText: 'Edit transcript...',
                   helperText: 'Tap checkmark to save, X to cancel',
                 ),

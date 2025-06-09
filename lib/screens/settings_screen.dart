@@ -1083,8 +1083,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 roomService.userChooseGoOffline();
 
                 // Short delay between attempts
-                if (i < 2)
+                if (i < 2) {
                   await Future.delayed(const Duration(milliseconds: 200));
+                }
               }
 
               // STEP 5: Longer delay to let all async operations complete

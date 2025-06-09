@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/caption_service.dart';
-import '../services/audio_streaming_service.dart';
-import '../services/settings_service.dart';
+import 'package:closed_caption_companion/services/caption_service.dart';
+import 'package:closed_caption_companion/services/audio_streaming_service.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
 
 class StatusIndicator extends StatelessWidget {
-  const StatusIndicator({Key? key}) : super(key: key);
+  const StatusIndicator({super.key});
 
   @override
   Widget build(BuildContext context) {

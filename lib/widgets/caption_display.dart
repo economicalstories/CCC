@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/caption_service.dart';
-import '../services/settings_service.dart';
-import '../utils/theme_config.dart';
+import 'package:closed_caption_companion/services/caption_service.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:closed_caption_companion/utils/theme_config.dart';
 
 class CaptionDisplay extends StatefulWidget {
-  const CaptionDisplay({Key? key}) : super(key: key);
+  const CaptionDisplay({super.key});
 
   @override
   State<CaptionDisplay> createState() => _CaptionDisplayState();

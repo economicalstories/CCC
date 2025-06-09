@@ -1,8 +1,8 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
 import 'package:closed_caption_companion/services/audio_streaming_service.dart';
 import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
 
 @GenerateMocks([SettingsService])
 import 'stt_state_test.mocks.dart';

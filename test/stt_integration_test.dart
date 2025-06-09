@@ -37,7 +37,7 @@ void main() {
     testWidgets('Haptic feedback should be triggered on STT start',
         (WidgetTester tester) async {
       // Track haptic feedback calls
-      List<MethodCall> hapticCalls = [];
+      final List<MethodCall> hapticCalls = [];
 
       const platform = MethodChannel('plugins.flutter.io/haptic_feedback');
       platform.setMockMethodCallHandler((MethodCall methodCall) async {

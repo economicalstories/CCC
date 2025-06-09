@@ -10,12 +10,6 @@ import 'package:closed_caption_companion/models/room_participant.dart';
 import 'package:closed_caption_companion/utils/theme_config.dart';
 
 class RoomCaptionDisplay extends StatefulWidget {
-  final VoidCallback? onMicPress;
-  final VoidCallback? onMicRelease;
-  final Function(String)? onSendMessage;
-  final bool isAudioInitialized;
-  final bool isSTTReady;
-
   const RoomCaptionDisplay({
     super.key,
     this.onMicPress,
@@ -24,6 +18,11 @@ class RoomCaptionDisplay extends StatefulWidget {
     this.isAudioInitialized = false,
     this.isSTTReady = false,
   });
+  final VoidCallback? onMicPress;
+  final VoidCallback? onMicRelease;
+  final Function(String)? onSendMessage;
+  final bool isAudioInitialized;
+  final bool isSTTReady;
 
   @override
   State<RoomCaptionDisplay> createState() => _RoomCaptionDisplayState();
@@ -121,11 +120,10 @@ class _SpeakerColors {
 class _ParticipantActivity {
   _ParticipantActivity({
     required this.participantId,
-    this.activityScore = 0.0,
     DateTime? lastActivity,
   }) : lastActivity = lastActivity ?? DateTime.now();
   final String participantId;
-  double activityScore;
+  double activityScore = 1.0;
   DateTime lastActivity;
 }
 

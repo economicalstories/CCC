@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:closed_caption_companion/services/room_service.dart';
 import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class RoomTestScreen extends StatefulWidget {
   const RoomTestScreen({super.key});
