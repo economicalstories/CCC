@@ -71,7 +71,6 @@ flutter:
     - assets/config.json
     - assets/ccc_logo.png
     - web/icons/
-    - .env
   
   # Fonts commented out until font files are added
   # fonts:
