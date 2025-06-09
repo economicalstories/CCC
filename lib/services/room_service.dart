@@ -5,30 +5,28 @@ import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:uuid/uuid.dart';
 import 'package:ulid/ulid.dart';
-import '../models/room_participant.dart';
-import '../models/room_message.dart';
-import '../utils/room_code_generator.dart';
-import 'settings_service.dart';
+import 'package:closed_caption_companion/models/room_participant.dart';
+import 'package:closed_caption_companion/models/room_message.dart';
+import 'package:closed_caption_companion/utils/room_code_generator.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RoomCheckResult {
-  final int participantCount;
-  final bool isEmpty;
-
   RoomCheckResult({
     required this.participantCount,
     required this.isEmpty,
   });
+  final int participantCount;
+  final bool isEmpty;
 }
 
 class ConnectionTestResult {
-  final bool success;
-  final String? error;
-
   ConnectionTestResult({
     required this.success,
     this.error,
   });
+  final bool success;
+  final String? error;
 }
 
 enum ConnectionStatus {
@@ -43,7 +41,8 @@ enum ConnectionStatus {
 class RoomService extends ChangeNotifier {
   // Get PartyKit URL from settings/environment with access key support
   String _getPartyKitUrl([String? accessKey]) {
-    return _settingsService?.partyKitServer ?? 'wss://ccc-relay.partykit.dev';
+    return _settingsService?.partyKitServer ??
+        'wss://ccc-rooms.economicalstories.partykit.dev';
   }
 
   Uri _buildWebSocketUrl(String roomCode, [String? accessKey]) {
@@ -89,7 +88,7 @@ class RoomService extends ChangeNotifier {
   String? _participantName;
 
   bool _isConnected = false;
-  List<RoomMessage> _messages = [];
+  final List<RoomMessage> _messages = [];
 
   // Room checking
   Completer<RoomCheckResult>? _roomCheckCompleter;
@@ -121,9 +120,9 @@ class RoomService extends ChangeNotifier {
   List<RoomParticipant> _participants = [];
 
   // Button state tracking for all participants
-  Map<String, bool> _participantButtonStates = {};
-  Map<String, DateTime> _lastButtonActivity = {};
-  Map<String, DateTime> _lastHeartbeat = {};
+  final Map<String, bool> _participantButtonStates = {};
+  final Map<String, DateTime> _lastButtonActivity = {};
+  final Map<String, DateTime> _lastHeartbeat = {};
 
   // Add missing timer declarations
   Timer? _heartbeatTimer;
@@ -134,26 +133,26 @@ class RoomService extends ChangeNotifier {
   bool _heartbeatHealthy = false;
 
   // Per-participant heartbeat tracking for connection status indicators
-  Map<String, DateTime> _participantLastHeartbeat = {};
+  final Map<String, DateTime> _participantLastHeartbeat = {};
 
   // Track current text content for synchronization
   String _currentTextContent = '';
-  Map<String, String> _participantTextContent = {};
+  final Map<String, String> _participantTextContent = {};
 
   // Track text editing state for participants
   bool _isCurrentlyTexting = false;
-  Map<String, bool> _participantTextingStates = {};
+  final Map<String, bool> _participantTextingStates = {};
 
   // Track collapsed/acknowledged content per participant
-  Map<String, String> _acknowledgedParticipantContent = {};
-  Set<String> _collapsedParticipants = {};
+  final Map<String, String> _acknowledgedParticipantContent = {};
+  final Set<String> _collapsedParticipants = {};
 
   // Track inactive and removed participants
-  Set<String> _inactiveParticipants = {};
-  Set<String> _removedParticipants = {};
+  final Set<String> _inactiveParticipants = {};
+  final Set<String> _removedParticipants = {};
 
   // Track blocked participants (can't rejoin)
-  Set<String> _blockedParticipants = {};
+  final Set<String> _blockedParticipants = {};
 
   // OFFLINE MODE STATE - START IN OFFLINE MODE BY DEFAULT
   bool _isOfflineMode = true; // Default to offline mode
@@ -356,7 +355,7 @@ class RoomService extends ChangeNotifier {
     _removedParticipants.clear();
 
     debugPrint(
-        '🏠 Offline mode initialized: ${_participantName} (${_participantId?.substring(0, 8)}...)');
+        '🏠 Offline mode initialized: $_participantName (${_participantId?.substring(0, 8)}...)');
 
     // Start continuous polling to try to get online
     _startOfflinePolling();
@@ -539,7 +538,7 @@ class RoomService extends ChangeNotifier {
 
               debugPrint('🏠 Room state received on temporary connection:');
               debugPrint('  - Participants: ${participants.length}');
-              for (var p in participants) {
+              for (final p in participants) {
                 debugPrint('    - ${p.name} (${p.id})');
               }
               debugPrint('  - My device UUID: $deviceUuid');
@@ -1057,13 +1056,13 @@ class RoomService extends ChangeNotifier {
 
       debugPrint(
           'Enhanced room state: ${activeParticipants.length} active, ${timedOutParticipants.length} timed out, ${declinedParticipants.length} declined');
-      for (var p in activeParticipants) {
+      for (final p in activeParticipants) {
         debugPrint('  Active: ${p.name} (${p.id})');
       }
-      for (var p in timedOutParticipants) {
+      for (final p in timedOutParticipants) {
         debugPrint('  Timed out: ${p.name} (${p.id})');
       }
-      for (var p in declinedParticipants) {
+      for (final p in declinedParticipants) {
         debugPrint('  Declined: ${p.name} (${p.id})');
       }
     } else {
@@ -1073,7 +1072,7 @@ class RoomService extends ChangeNotifier {
           .toList();
 
       debugPrint('Legacy room state: ${_participants.length} participants');
-      for (var p in _participants) {
+      for (final p in _participants) {
         debugPrint('  - ${p.name} (${p.id})');
       }
     }
@@ -1992,9 +1991,7 @@ class RoomService extends ChangeNotifier {
     _buttonStateCleanupTimer?.cancel();
 
     // Ensure we have participant info for offline mode
-    if (_participantId == null) {
-      _participantId = _settingsService?.deviceUuid ?? const Uuid().v4();
-    }
+    _participantId ??= _settingsService?.deviceUuid ?? const Uuid().v4();
     if (_participantName == null || _participantName!.isEmpty) {
       _participantName = _settingsService?.userName ?? 'User';
     }
@@ -2006,7 +2003,7 @@ class RoomService extends ChangeNotifier {
     _activeSpeakerName = null;
 
     debugPrint(
-        '🏠 Offline mode: Current user is ${_participantName} (${_participantId?.substring(0, 8)}...)');
+        '🏠 Offline mode: Current user is $_participantName (${_participantId?.substring(0, 8)}...)');
 
     // Only start periodic reconnection if we were previously online
     if (wasOnline) {
@@ -2228,10 +2225,10 @@ class RoomService extends ChangeNotifier {
         if (envServer != null && envServer.isNotEmpty) {
           baseUrl = envServer;
         } else {
-          baseUrl = 'wss://ccc-relay.partykit.dev';
+          baseUrl = 'wss://ccc-rooms.economicalstories.partykit.dev';
         }
       } catch (e) {
-        baseUrl = 'wss://ccc-relay.partykit.dev';
+        baseUrl = 'wss://ccc-rooms.economicalstories.partykit.dev';
       }
     }
 
@@ -2315,7 +2312,7 @@ class RoomService extends ChangeNotifier {
           'Connection test ${result.success ? 'succeeded' : 'failed'}${result.error != null ? ': ${result.error}' : ''}');
 
       return result;
-    } catch (e, stackTrace) {
+    } catch (e) {
       String errorMessage = 'Connection failed';
       final errorStr = e.toString().toLowerCase();
 
@@ -2562,9 +2559,7 @@ class RoomService extends ChangeNotifier {
     _isCurrentlyReceivingSTT = !isFinal;
 
     // Generate ULID only once per speaking session (button press session)
-    if (_currentSessionUlid == null) {
-      _currentSessionUlid = Ulid().toString();
-    }
+    _currentSessionUlid ??= Ulid().toString();
 
     // Store message locally when final (same for both offline and online)
     if (isFinal && text.trim().isNotEmpty) {
@@ -3099,7 +3094,7 @@ class RoomService extends ChangeNotifier {
   }
 
   // Enhanced speaking state for concurrent mode
-  Set<String> _currentSpeakers = {}; // Track multiple speakers
+  final Set<String> _currentSpeakers = {}; // Track multiple speakers
   bool _concurrentMode = false; // Track if room supports concurrent speaking
 
   // Reset connection state to allow fresh connection attempts
@@ -3276,9 +3271,7 @@ class RoomService extends ChangeNotifier {
     _reconnectionTimer?.cancel(); // Don't start reconnection attempts
 
     // Ensure we have participant info for offline mode
-    if (_participantId == null) {
-      _participantId = _settingsService?.deviceUuid ?? const Uuid().v4();
-    }
+    _participantId ??= _settingsService?.deviceUuid ?? const Uuid().v4();
     if (_participantName == null || _participantName!.isEmpty) {
       _participantName = _settingsService?.userName ?? 'User';
     }
@@ -3289,7 +3282,7 @@ class RoomService extends ChangeNotifier {
     _activeSpeakerName = null;
 
     debugPrint(
-        '🏠 Solo offline mode: Current user is ${_participantName} (${_participantId?.substring(0, 8)}...)');
+        '🏠 Solo offline mode: Current user is $_participantName (${_participantId?.substring(0, 8)}...)');
     debugPrint(
         '🚫 NO reconnection attempts will be made - user chose Solo mode');
 

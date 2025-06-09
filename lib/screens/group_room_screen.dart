@@ -2,21 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
-import '../services/room_service.dart';
-import '../services/audio_streaming_service.dart';
-import '../services/settings_service.dart';
-import '../widgets/room_caption_display.dart';
-import '../utils/room_code_generator.dart';
+import 'package:closed_caption_companion/services/room_service.dart';
+import 'package:closed_caption_companion/services/audio_streaming_service.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:closed_caption_companion/widgets/room_caption_display.dart';
+import 'package:closed_caption_companion/utils/room_code_generator.dart';
 
 class GroupRoomScreen extends StatefulWidget {
-  final String? roomCode;
-  final String? encryptionKey;
-
   const GroupRoomScreen({
     Key? key,
     this.roomCode,
     this.encryptionKey,
   }) : super(key: key);
+  final String? roomCode;
+  final String? encryptionKey;
 
   @override
   State<GroupRoomScreen> createState() => _GroupRoomScreenState();

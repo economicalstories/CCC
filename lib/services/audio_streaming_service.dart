@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
-import 'settings_service.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
 
 class AudioStreamingService {
   // Speech to text engine
@@ -361,7 +361,7 @@ class AudioStreamingService {
     _currentChunk = result.recognizedWords;
 
     // Combine accumulated text (from previous sessions) with current chunk for display
-    String fullText = _accumulatedText.isEmpty
+    final String fullText = _accumulatedText.isEmpty
         ? _currentChunk
         : '$_accumulatedText $_currentChunk';
 

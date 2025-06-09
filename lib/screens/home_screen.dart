@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../services/room_service.dart';
-import '../services/settings_service.dart';
-import '../services/audio_streaming_service.dart';
-import '../widgets/room_caption_display.dart';
-import '../utils/room_code_generator.dart';
-import 'settings_screen.dart';
+import 'package:closed_caption_companion/services/room_service.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:closed_caption_companion/services/audio_streaming_service.dart';
+import 'package:closed_caption_companion/widgets/room_caption_display.dart';
+import 'package:closed_caption_companion/utils/room_code_generator.dart';
+import 'package:closed_caption_companion/screens/settings_screen.dart';
 import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -457,7 +457,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
 
                 const SizedBox(height: 24),
                 const Divider(),
@@ -535,7 +535,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  void _createNewRoomFromDialog(BuildContext context) async {
+  Future<void> _createNewRoomFromDialog(BuildContext context) async {
     final userName = _settingsService.userName!;
 
     try {
@@ -691,7 +691,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  void _joinRoomFromDialog(
+  Future<void> _joinRoomFromDialog(
       BuildContext dialogContext, String code, String userName) async {
     final upperCode = code.toUpperCase();
 
@@ -947,7 +947,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         decoration: BoxDecoration(
                           color: Theme.of(context)
                               .colorScheme
-                              .surfaceVariant
+                              .surfaceContainerHighest
                               .withOpacity(0.5),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
@@ -1104,8 +1104,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             // Room code pill
                             Consumer<RoomService>(
                               builder: (context, roomService, _) {
-                                if (!roomService.isInRoom)
+                                if (!roomService.isInRoom) {
                                   return const SizedBox.shrink();
+                                }
 
                                 return GestureDetector(
                                   onTap: () async {
@@ -1434,12 +1435,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         margin: const EdgeInsets.all(16),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceVariant,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           children: [
-                            SizedBox(
+                            const SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
@@ -1488,7 +1491,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           children: [
                             Row(
                               children: [
-                                SizedBox(
+                                const SizedBox(
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(
@@ -1616,16 +1619,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.mic_external_on,
                         color: Colors.white,
                         size: 20,
                       ),
-                      const SizedBox(width: 8),
-                      const Expanded(
+                      SizedBox(width: 8),
+                      Expanded(
                         child: Text(
                           'Please speak more clearly',
                           style: TextStyle(

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../services/room_service.dart';
-import '../services/settings_service.dart';
-import '../models/room_message.dart';
-import '../models/room_participant.dart';
-import '../utils/theme_config.dart';
+import 'package:closed_caption_companion/services/room_service.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:closed_caption_companion/models/room_message.dart';
+import 'package:closed_caption_companion/models/room_participant.dart';
+import 'package:closed_caption_companion/utils/theme_config.dart';
 
 class RoomCaptionDisplay extends StatefulWidget {
   final VoidCallback? onMicPress;
@@ -17,13 +17,13 @@ class RoomCaptionDisplay extends StatefulWidget {
   final bool isSTTReady;
 
   const RoomCaptionDisplay({
-    Key? key,
+    super.key,
     this.onMicPress,
     this.onMicRelease,
     this.onSendMessage,
     this.isAudioInitialized = false,
     this.isSTTReady = false,
-  }) : super(key: key);
+  });
 
   @override
   State<RoomCaptionDisplay> createState() => _RoomCaptionDisplayState();
@@ -119,15 +119,14 @@ class _SpeakerColors {
 
 // Activity tracking for dynamic sizing
 class _ParticipantActivity {
-  final String participantId;
-  double activityScore;
-  DateTime lastActivity;
-
   _ParticipantActivity({
     required this.participantId,
     this.activityScore = 0.0,
     DateTime? lastActivity,
   }) : lastActivity = lastActivity ?? DateTime.now();
+  final String participantId;
+  double activityScore;
+  DateTime lastActivity;
 }
 
 class _RoomCaptionDisplayState extends State<RoomCaptionDisplay>
@@ -189,7 +188,7 @@ class _RoomCaptionDisplayState extends State<RoomCaptionDisplay>
 
   void _updateActivityScores() {
     final now = DateTime.now();
-    final decayFactor = _activityDecayRate;
+    const decayFactor = _activityDecayRate;
 
     for (final activity in _participantActivities.values) {
       final timeDelta =
@@ -395,24 +394,6 @@ class _RoomCaptionDisplayState extends State<RoomCaptionDisplay>
 
 // Dynamic layout that implements activity-based sizing and current speaker at bottom
 class _DynamicCaptionLayout extends StatelessWidget {
-  final List<RoomParticipant> participants;
-  final List<RoomMessage> messages;
-  final String? currentUserId;
-  final String? activeSpeakerId;
-  final String? pendingParticipantId;
-
-  final Map<String, _ParticipantActivity> participantActivities;
-  final Map<String, ScrollController> participantScrollControllers;
-  final Function(String) onDismissMessage;
-  final Function(String) onApproveJoin;
-  final Function(String) onDeclineJoin;
-  final VoidCallback? onMicPress;
-  final VoidCallback? onMicRelease;
-  final Function(String)? onSendMessage;
-  final bool isAudioInitialized;
-  final bool isSTTReady;
-  final ScrollController Function(String) getScrollController;
-
   const _DynamicCaptionLayout({
     required this.participants,
     required this.messages,
@@ -431,6 +412,23 @@ class _DynamicCaptionLayout extends StatelessWidget {
     required this.isSTTReady,
     required this.getScrollController,
   });
+  final List<RoomParticipant> participants;
+  final List<RoomMessage> messages;
+  final String? currentUserId;
+  final String? activeSpeakerId;
+  final String? pendingParticipantId;
+
+  final Map<String, _ParticipantActivity> participantActivities;
+  final Map<String, ScrollController> participantScrollControllers;
+  final Function(String) onDismissMessage;
+  final Function(String) onApproveJoin;
+  final Function(String) onDeclineJoin;
+  final VoidCallback? onMicPress;
+  final VoidCallback? onMicRelease;
+  final Function(String)? onSendMessage;
+  final bool isAudioInitialized;
+  final bool isSTTReady;
+  final ScrollController Function(String) getScrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -482,7 +480,8 @@ class _DynamicCaptionLayout extends StatelessWidget {
   List<_ParticipantLayoutInfo> _calculateAdaptiveLayout(
       RoomService roomService) {
     // Create layout info for each participant
-    List<_ParticipantLayoutInfo> layoutInfos = participants.map((participant) {
+    final List<_ParticipantLayoutInfo> layoutInfos =
+        participants.map((participant) {
       return _ParticipantLayoutInfo(
         participant: participant,
         activityScore: 1.0, // Not used anymore, but keep for compatibility
@@ -491,7 +490,7 @@ class _DynamicCaptionLayout extends StatelessWidget {
 
     // Separate current user from others
     _ParticipantLayoutInfo? currentUserInfo;
-    List<_ParticipantLayoutInfo> otherParticipants = [];
+    final List<_ParticipantLayoutInfo> otherParticipants = [];
 
     for (final info in layoutInfos) {
       if (info.participant.id == currentUserId) {
@@ -595,7 +594,7 @@ class _DynamicCaptionLayout extends StatelessWidget {
         if (messages.isNotEmpty) {
           final msg = messages.last;
           debugPrint(
-              '  Latest message: speakerId=${msg.speakerId}, text="${msg.text.length > 50 ? msg.text.substring(0, 50) + "..." : msg.text}"');
+              '  Latest message: speakerId=${msg.speakerId}, text="${msg.text.length > 50 ? "${msg.text.substring(0, 50)}..." : msg.text}"');
           debugPrint(
               '  Does speakerId match? ${msg.speakerId == participantId}');
         }
@@ -611,34 +610,17 @@ class _DynamicCaptionLayout extends StatelessWidget {
 
 // Layout info for dynamic sizing calculations
 class _ParticipantLayoutInfo {
-  final RoomParticipant participant;
-  final double activityScore;
-  double heightFraction = 0.0;
-
   _ParticipantLayoutInfo({
     required this.participant,
     required this.activityScore,
   });
+  final RoomParticipant participant;
+  final double activityScore;
+  double heightFraction = 0.0;
 }
 
 // Individual caption box with dynamic sizing and visual cues
 class _DynamicCaptionBox extends StatelessWidget {
-  final RoomParticipant participant;
-  final List<RoomMessage> messages;
-  final bool isCurrentUser;
-  final bool isActiveSpeaker;
-  final bool isPending;
-  final double activityScore;
-  final ScrollController scrollController;
-  final Function(String) onDismissMessage;
-  final Function(String) onApproveJoin;
-  final Function(String) onDeclineJoin;
-  final VoidCallback? onMicPress;
-  final VoidCallback? onMicRelease;
-  final Function(String)? onSendMessage;
-  final bool isAudioInitialized;
-  final bool isSTTReady;
-
   const _DynamicCaptionBox({
     required this.participant,
     required this.messages,
@@ -656,6 +638,21 @@ class _DynamicCaptionBox extends StatelessWidget {
     required this.isAudioInitialized,
     required this.isSTTReady,
   });
+  final RoomParticipant participant;
+  final List<RoomMessage> messages;
+  final bool isCurrentUser;
+  final bool isActiveSpeaker;
+  final bool isPending;
+  final double activityScore;
+  final ScrollController scrollController;
+  final Function(String) onDismissMessage;
+  final Function(String) onApproveJoin;
+  final Function(String) onDeclineJoin;
+  final VoidCallback? onMicPress;
+  final VoidCallback? onMicRelease;
+  final Function(String)? onSendMessage;
+  final bool isAudioInitialized;
+  final bool isSTTReady;
 
   @override
   Widget build(BuildContext context) {
@@ -924,7 +921,7 @@ class _DynamicCaptionBox extends StatelessWidget {
                                                     .withOpacity(0.8),
                                                 shape: BoxShape.circle,
                                               ),
-                                              child: Icon(
+                                              child: const Icon(
                                                 Icons.check,
                                                 size: 12,
                                                 color: Colors.white,
@@ -944,11 +941,11 @@ class _DynamicCaptionBox extends StatelessWidget {
                                         child: Container(
                                           width: 18,
                                           height: 18,
-                                          decoration: BoxDecoration(
+                                          decoration: const BoxDecoration(
                                             color: Colors.red,
                                             shape: BoxShape.circle,
                                           ),
-                                          child: Icon(
+                                          child: const Icon(
                                             Icons.close,
                                             size: 12,
                                             color: Colors.white,
@@ -1069,7 +1066,7 @@ class _DynamicCaptionBox extends StatelessWidget {
                     controller: scrollController,
                     physics:
                         const AlwaysScrollableScrollPhysics(), // Enable touch scrolling
-                    child: Container(
+                    child: SizedBox(
                       width: double.infinity,
                       child: SelectableText(
                         displayText,
@@ -1113,17 +1110,6 @@ class _DynamicCaptionBox extends StatelessWidget {
 
 // Simple text box with separate mic button
 class _SimpleUserTextBox extends StatefulWidget {
-  final Color speakerColor;
-  final double nameSize;
-  final bool isActiveSpeaker;
-  final bool isSTTReady;
-  final VoidCallback? onMicPress;
-  final VoidCallback? onMicRelease;
-  final Function(String)? onSendMessage;
-  final RoomMessage? currentMessage;
-  final String currentSTTText;
-  final bool isReceivingSTT;
-  final bool isMicrophoneAvailable;
   const _SimpleUserTextBox({
     required this.speakerColor,
     required this.nameSize,
@@ -1137,6 +1123,17 @@ class _SimpleUserTextBox extends StatefulWidget {
     this.isReceivingSTT = false,
     this.isMicrophoneAvailable = false,
   });
+  final Color speakerColor;
+  final double nameSize;
+  final bool isActiveSpeaker;
+  final bool isSTTReady;
+  final VoidCallback? onMicPress;
+  final VoidCallback? onMicRelease;
+  final Function(String)? onSendMessage;
+  final RoomMessage? currentMessage;
+  final String currentSTTText;
+  final bool isReceivingSTT;
+  final bool isMicrophoneAvailable;
 
   @override
   State<_SimpleUserTextBox> createState() => _SimpleUserTextBoxState();
@@ -1539,9 +1536,8 @@ class _SimpleUserTextBoxState extends State<_SimpleUserTextBox> {
 
 // Pulsing indicator for active speaker
 class _PulsingSpeakerIndicator extends StatefulWidget {
-  final Color color;
-
   const _PulsingSpeakerIndicator({required this.color});
+  final Color color;
 
   @override
   State<_PulsingSpeakerIndicator> createState() =>

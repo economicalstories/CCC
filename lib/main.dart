@@ -1,13 +1,13 @@
+import 'package:closed_caption_companion/screens/home_screen.dart';
+import 'package:closed_caption_companion/services/audio_streaming_service.dart';
+import 'package:closed_caption_companion/services/caption_service.dart';
+import 'package:closed_caption_companion/services/room_service.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:closed_caption_companion/utils/theme_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'screens/home_screen.dart';
-import 'services/caption_service.dart';
-import 'services/settings_service.dart';
-import 'services/audio_streaming_service.dart';
-import 'services/room_service.dart';
-import 'utils/theme_config.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,7 +39,7 @@ void main() async {
 }
 
 class CCCApp extends StatelessWidget {
-  const CCCApp({Key? key}) : super(key: key);
+  const CCCApp({super.key});
 
   @override
   Widget build(BuildContext context) {

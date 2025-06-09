@@ -1,9 +1,9 @@
+import 'package:closed_caption_companion/utils/theme_config.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../utils/theme_config.dart';
 
 class SettingsService extends ChangeNotifier {
   static const String _fontSizeKey = 'fontSize';
@@ -44,7 +44,8 @@ class SettingsService extends ChangeNotifier {
   bool get sharingEnabled => _sharingEnabled;
   String? get accessKey => _accessKey;
   String get partyKitServer =>
-      dotenv.env['PARTYKIT_SERVER'] ?? 'wss://ccc-relay.partykit.dev';
+      dotenv.env['PARTYKIT_SERVER'] ??
+      'wss://ccc-rooms.economicalstories.partykit.dev';
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -77,9 +78,7 @@ class SettingsService extends ChangeNotifier {
 
     // Load or generate device UUID
     _deviceUuid = _prefs.getString(_deviceUuidKey);
-    if (_deviceUuid == null) {
-      _deviceUuid = _generateAndStoreDeviceUuid();
-    }
+    _deviceUuid ??= _generateAndStoreDeviceUuid();
 
     // Load sharing enabled
     _sharingEnabled = _prefs.getBool(_sharingEnabledKey) ?? false;
@@ -102,8 +101,9 @@ class SettingsService extends ChangeNotifier {
   }
 
   Future<void> setFontSize(double size) async {
-    if (size < ThemeConfig.minFontSize || size > ThemeConfig.maxFontSize)
+    if (size < ThemeConfig.minFontSize || size > ThemeConfig.maxFontSize) {
       return;
+    }
 
     _fontSize = size;
     await _prefs.setDouble(_fontSizeKey, size);

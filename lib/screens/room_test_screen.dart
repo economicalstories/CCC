@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/room_service.dart';
-import '../services/settings_service.dart';
+import 'package:closed_caption_companion/services/room_service.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
 
 class RoomTestScreen extends StatefulWidget {
-  const RoomTestScreen({Key? key}) : super(key: key);
+  const RoomTestScreen({super.key});
 
   @override
   State<RoomTestScreen> createState() => _RoomTestScreenState();
@@ -232,7 +232,7 @@ class _RoomTestScreenState extends State<RoomTestScreen> {
     roomService.joinRoom(roomCode, name);
   }
 
-  void _requestSpeak(RoomService roomService) async {
+  Future<void> _requestSpeak(RoomService roomService) async {
     final success = await roomService.requestSpeak();
     if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
