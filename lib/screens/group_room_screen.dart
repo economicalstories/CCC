@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../services/room_service.dart';
 import '../services/audio_streaming_service.dart';
 import '../services/settings_service.dart';
@@ -33,6 +34,8 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
   bool _showQrCode = false;
   bool _isAudioInitialized = false;
   String? _audioInitError;
+  bool _isButtonPressed = false;
+  bool _showSpeakClearlyMessage = false;
 
   @override
   void initState() {
@@ -47,11 +50,31 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
     // Initialize audio service for the room
     _initializeAudio();
 
-    // Auto-join if room code provided
+    // ALWAYS start in offline mode first
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeOfflineMode();
+    });
+  }
+
+  Future<void> _initializeOfflineMode() async {
+    // Initialize offline mode with user info
+    _roomService.initializeOfflineMode(userName: _settingsService.userName);
+
+    // Attempt background connection (non-blocking)
+    // Check if we have a room code to rejoin or if we should create new
+    final savedRoomCode = _settingsService.roomCode;
+
     if (widget.roomCode != null && widget.encryptionKey != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _joinRoomWithCode(widget.roomCode!, widget.encryptionKey!);
-      });
+      // Explicit room code provided - try to join it
+      debugPrint('🔗 Attempting to join provided room: ${widget.roomCode}');
+      _roomService.attemptBackgroundConnection();
+      // Then try to join the specific room
+      await _joinRoomWithCode(widget.roomCode!, widget.encryptionKey!);
+    } else {
+      // No explicit room code - try background connection with saved room or create new
+      debugPrint(
+          '🔗 Attempting background connection with saved room: $savedRoomCode');
+      _roomService.attemptBackgroundConnection(savedRoomCode: savedRoomCode);
     }
   }
 
@@ -62,15 +85,46 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
         print('Room: Received transcription: "$text" (final: $isFinal)');
         if (_roomService.isSpeaking) {
           _roomService.addCaptionText(text, isFinal: isFinal);
+          // Hide the "speak more clearly" message when we get transcription
+          if (_showSpeakClearlyMessage) {
+            setState(() {
+              _showSpeakClearlyMessage = false;
+            });
+          }
         }
       };
 
       _audioService.onError = (error) {
         if (_roomService.isSpeaking) {
           HapticFeedback.mediumImpact();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error)),
-          );
+
+          // Handle speech timeout by automatically releasing the button
+          if (error.contains('speech_time_out') ||
+              error.contains('error_speech_timeout')) {
+            debugPrint(
+                '🔔 Speech timeout detected - automatically releasing button');
+            _handleMicRelease();
+            // No snackbar message for timeout - just auto-release
+          } else if (error.contains('No match') ||
+              error.contains('error_no_match')) {
+            debugPrint(
+                '👂 No match detected - showing speak more clearly message');
+            setState(() {
+              _showSpeakClearlyMessage = true;
+            });
+            // Hide the message after 2 seconds
+            Timer(const Duration(seconds: 2), () {
+              if (mounted) {
+                setState(() {
+                  _showSpeakClearlyMessage = false;
+                });
+              }
+            });
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(error)),
+            );
+          }
         }
       };
 
@@ -140,7 +194,7 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
 
     try {
       // For now, we'll use a mock encryption key
-      await _roomService.joinRoom(roomCode, 'mock-key', name);
+      await _roomService.joinRoom(roomCode, name);
       setState(() => _isJoining = false);
     } catch (e) {
       setState(() => _isJoining = false);
@@ -155,7 +209,7 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
     setState(() => _isJoining = true);
 
     try {
-      await _roomService.joinRoom(roomCode, encryptionKey, name);
+      await _roomService.joinRoom(roomCode, name);
       setState(() => _isJoining = false);
     } catch (e) {
       setState(() => _isJoining = false);
@@ -273,40 +327,86 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
   Future<void> _handleMicPress() async {
     if (!_isAudioInitialized) return;
 
-    if (_roomService.activeSpeaker != null) {
-      // Someone else is speaking
+    // Set button pressed state immediately
+    setState(() {
+      _isButtonPressed = true;
+    });
+
+    // Check if we can speak
+    final canSpeak = await _roomService.requestSpeak();
+
+    if (!canSpeak) {
+      // Reset button state if we can't speak
+      setState(() {
+        _isButtonPressed = false;
+      });
+
+      // Show error feedback
       HapticFeedback.heavyImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${_roomService.activeSpeaker!.name} is speaking...'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
-    } else {
-      // Start speaking
-      HapticFeedback.selectionClick();
-      _roomService.startSpeaking();
 
-      // Start speech recognition
-      if (!_audioService.isConnected) {
-        await _audioService.connect();
+      if (_roomService.isConcurrentMode) {
+        // In concurrent mode, this shouldn't happen since everyone can speak
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to speak right now. Please try again.'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      } else {
+        // Legacy single-speaker mode
+        final activeSpeaker = _roomService.activeSpeaker;
+        if (activeSpeaker != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${activeSpeaker.name} is speaking...'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
       }
+      return;
+    }
 
-      if (_audioService.isConnected) {
-        await _audioService.startStreaming();
-      }
+    // We can speak - set local speaking state
+    _roomService.setLocalSpeakingState(true);
+    HapticFeedback.selectionClick();
+
+    // Start speech recognition
+    if (!_audioService.isConnected) {
+      await _audioService.connect();
+    }
+
+    if (_audioService.isConnected) {
+      await _audioService.startStreaming();
     }
   }
 
   Future<void> _handleMicRelease() async {
-    if (_roomService.isSpeaking) {
+    debugPrint('🔴 GROUP ROOM: _handleMicRelease() called');
+    debugPrint('🎤 Group room mic release started');
+
+    // Reset button pressed state immediately
+    setState(() {
+      _isButtonPressed = false;
+    });
+
+    // Clear local speaking state immediately
+    _roomService.setLocalSpeakingState(false);
+    debugPrint('🎤 Set local speaking state to false');
+
+    if (_audioService.isStreaming) {
       HapticFeedback.selectionClick();
 
       // Stop speech recognition
       await _audioService.stopStreaming();
+      debugPrint('🎤 Stopped audio streaming');
 
       _roomService.stopSpeaking();
+      debugPrint('🎤 Called stopSpeaking on room service');
     }
+
+    debugPrint(
+        '🎤 Group room mic release completed. Is speaking: ${_roomService.isSpeaking}');
   }
 
   @override
@@ -559,31 +659,13 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
 
         // Caption display
         if (!_showQrCode)
-          const Expanded(
-            child: RoomCaptionDisplay(),
-          ),
-
-        // Active speaker indicator
-        if (roomService.activeSpeaker != null && !_showQrCode)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Theme.of(context).colorScheme.primaryContainer,
-            child: Row(
-              children: [
-                Icon(
-                  Icons.mic,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${roomService.activeSpeaker!.name} is speaking...',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ],
+          Expanded(
+            child: RoomCaptionDisplay(
+              onMicPress: _handleMicPress,
+              onMicRelease: _handleMicRelease,
+              onSendMessage: _roomService.sendTextMessage,
+              isAudioInitialized:
+                  _isAudioInitialized && _audioInitError == null,
             ),
           ),
 
@@ -612,62 +694,6 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
                   ),
                 ),
               ],
-            ),
-          ),
-
-        // Microphone button
-        if (!_showQrCode)
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: GestureDetector(
-              onTapDown: (_) => _handleMicPress(),
-              onTapUp: (_) => _handleMicRelease(),
-              onTapCancel: _handleMicRelease,
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: roomService.isSpeaking
-                      ? Theme.of(context).colorScheme.error
-                      : roomService.activeSpeaker != null
-                          ? Theme.of(context).disabledColor
-                          : Theme.of(context).colorScheme.primary,
-                  boxShadow: [
-                    BoxShadow(
-                      color: (roomService.isSpeaking
-                              ? Theme.of(context).colorScheme.error
-                              : Theme.of(context).colorScheme.primary)
-                          .withOpacity(0.3),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Icon(
-                    roomService.activeSpeaker != null && !roomService.isSpeaking
-                        ? Icons.mic_off
-                        : Icons.mic,
-                    color: Colors.white,
-                    size: 36,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-        // Status text
-        if (!_showQrCode)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: Text(
-              roomService.isSpeaking
-                  ? 'Release to stop'
-                  : roomService.activeSpeaker != null
-                      ? 'Please wait...'
-                      : 'Hold to speak',
-              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
       ],

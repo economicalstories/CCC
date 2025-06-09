@@ -40,6 +40,21 @@ dependencies:
   
   # URL launcher for opening links
   url_launcher: ^6.2.1
+  
+  # WebSocket support for real-time rooms
+  web_socket_channel: ^2.4.0
+  
+  # UUID generation for unique participant IDs
+  uuid: ^4.2.1
+  
+  # ULID generation for message IDs
+  ulid: ^2.0.0
+
+  # Secure storage for access keys
+  flutter_secure_storage: ^9.0.0
+  
+  # Environment variable support
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -56,6 +71,7 @@ flutter:
     - assets/config.json
     - assets/ccc_logo.png
     - web/icons/
+    - .env
   
   # Fonts commented out until font files are added
   # fonts:

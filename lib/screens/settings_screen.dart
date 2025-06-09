@@ -1,15 +1,16 @@
+import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../services/settings_service.dart';
-import '../services/caption_service.dart';
-import '../utils/theme_config.dart';
-import '../utils/room_code_generator.dart';
-import 'transcript_screen.dart';
+import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:closed_caption_companion/utils/theme_config.dart';
+import 'package:closed_caption_companion/utils/room_code_generator.dart';
+import 'package:closed_caption_companion/services/room_service.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -18,13 +19,25 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   double? _previewFontSize; // Temporary font size while sliding
   bool _isSliding = false;
+  final TextEditingController _roomCodeController = TextEditingController();
+  final TextEditingController _accessKeyController = TextEditingController();
+  final TextEditingController _userNameController = TextEditingController();
+  String? _accessKeyError;
+  bool _isTestingConnection = false;
+  bool _isEditingUserName = false;
+  bool _isEditingAccessKey = false;
+
   @override
   void initState() {
     super.initState();
+    // Don't pre-populate access key for security - user must explicitly choose to edit it
   }
 
   @override
   void dispose() {
+    _roomCodeController.dispose();
+    _accessKeyController.dispose();
+    _userNameController.dispose();
     super.dispose();
   }
 
@@ -134,13 +147,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: 'Profile',
               child: Column(
                 children: [
-                  _SettingsTile(
-                    title: 'Your Name',
-                    subtitle: settings.userName ?? 'Not set',
-                    trailing: TextButton(
-                      onPressed: () => _editUserName(context, settings),
-                      child: const Text('EDIT'),
-                    ),
+                  // Name editing section
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Your Name',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (_isEditingUserName) ...[
+                        // Editing mode
+                        TextField(
+                          controller: _userNameController,
+                          autofocus: true,
+                          decoration: const InputDecoration(
+                            hintText: 'Enter your name',
+                            border: OutlineInputBorder(),
+                          ),
+                          textCapitalization: TextCapitalization.words,
+                          onSubmitted: (value) => _saveUserName(settings),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: _cancelEditUserName,
+                              child: const Text('CANCEL'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () => _saveUserName(settings),
+                              child: const Text('SAVE'),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        // Display mode
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.2),
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  settings.userName ?? 'Not set',
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => _startEditUserName(settings),
+                                child: const Text('EDIT'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -156,22 +231,130 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
 
-            // Room Section
+            // Connect to other devices Section
             _SectionCard(
-              title: 'Room Settings',
+              title: 'Connect to other devices',
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SettingsTile(
-                    title: 'Current Room',
-                    subtitle: settings.roomCode ?? 'Loading...',
-                    trailing: TextButton(
-                      onPressed: () => _changeRoom(context, settings),
-                      child: const Text('CHANGE'),
-                    ),
+                  Text(
+                    'Access Key',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const SizedBox(height: 8),
+                  if (settings.accessKey != null && !_isEditingAccessKey) ...[
+                    // Key is set - show connected status
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border:
+                            Border.all(color: Colors.green.withOpacity(0.3)),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.green.withOpacity(0.1),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle,
+                              color: Colors.green, size: 20),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Connected - captions sync across your devices',
+                              style: TextStyle(color: Colors.green),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () =>
+                                _showForgetKeyDialog(context, settings),
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Forget Key'),
+                            style: TextButton.styleFrom(
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (_isEditingAccessKey) ...[
+                    // Editing mode
+                    TextField(
+                      controller: _accessKeyController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText:
+                            'Enter 4 words separated by hyphens (e.g. apple-sky-moon-path)',
+                        errorText: _accessKeyError,
+                        border: const OutlineInputBorder(),
+                      ),
+                      onSubmitted: (value) => _saveAccessKey(settings),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_isTestingConnection) ...[
+                      const Row(
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 12),
+                          Text('Testing connection...'),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: _isTestingConnection
+                              ? null
+                              : _cancelEditAccessKey,
+                          child: const Text('CANCEL'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: _isTestingConnection
+                              ? null
+                              : () => _saveAccessKey(settings),
+                          child: const Text('SAVE'),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    // No key set - show add button
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.2),
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text('Solo use only (offline mode)'),
+                          ),
+                          TextButton(
+                            onPressed: _startEditAccessKey,
+                            child: const Text('ADD KEY'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
                   Text(
-                    'Your room code persists across app sessions. Share it with others to let them join your captions.',
+                    'Add an access key to sync captions across your devices in real-time.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -264,9 +447,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     child: Text(
                       'This is how captions will look',
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                            fontSize: _previewFontSize ?? settings.fontSize,
-                          ),
+                      style: ThemeConfig.getCaptionTextStyle(
+                        _previewFontSize ?? settings.fontSize,
+                        Theme.of(context).colorScheme.onSurface,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -291,63 +475,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ],
-              ),
-            ),
-
-            // Transcript Section
-            _SectionCard(
-              title: 'Transcripts',
-              child: Consumer<CaptionService>(
-                builder: (context, captionService, child) {
-                  return Column(
-                    children: [
-                      _SettingsTile(
-                        title: 'Save Transcripts',
-                        subtitle:
-                            'Keep captions temporarily while app is running',
-                        trailing: Switch(
-                          value: settings.saveTranscripts,
-                          onChanged: settings.setSaveTranscripts,
-                        ),
-                      ),
-                      if (settings.saveTranscripts) ...[
-                        const Divider(),
-                        _SettingsTile(
-                          title: 'View Transcripts',
-                          subtitle: captionService.captions.isEmpty
-                              ? 'No captions saved'
-                              : '${captionService.captions.length} captions saved',
-                          trailing: TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const TranscriptScreen(),
-                                ),
-                              );
-                            },
-                            child: const Text('VIEW'),
-                          ),
-                        ),
-                        const Divider(),
-                        _SettingsTile(
-                          title: 'Clear History',
-                          subtitle: 'Delete all saved transcripts',
-                          trailing: TextButton(
-                            onPressed: captionService.captions.isEmpty
-                                ? null
-                                : () {
-                                    _showClearHistoryDialog(
-                                        context, captionService);
-                                  },
-                            child: const Text('CLEAR'),
-                          ),
-                        ),
-                      ],
-                    ],
-                  );
-                },
               ),
             ),
 
@@ -490,7 +617,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 16),
 
                   // Audio Processing
-                  _PrivacyItem(
+                  const _PrivacyItem(
                     icon: Icons.mic,
                     title: 'Audio Processing',
                     description:
@@ -498,7 +625,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
 
                   // Speech Recognition
-                  _PrivacyItem(
+                  const _PrivacyItem(
                     icon: Icons.cloud_outlined,
                     title: 'Speech Recognition Services',
                     description:
@@ -506,7 +633,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
 
                   // Local Storage
-                  _PrivacyItem(
+                  const _PrivacyItem(
                     icon: Icons.storage,
                     title: 'Local Storage',
                     description:
@@ -514,7 +641,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
 
                   // No Analytics
-                  _PrivacyItem(
+                  const _PrivacyItem(
                     icon: Icons.analytics_outlined,
                     title: 'No Analytics or Tracking',
                     description:
@@ -522,7 +649,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
 
                   // Open Source
-                  _PrivacyItem(
+                  const _PrivacyItem(
                     icon: Icons.code,
                     title: 'Open Source',
                     description:
@@ -538,7 +665,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(context)
                           .colorScheme
-                          .surfaceVariant
+                          .surfaceContainerHighest
                           .withOpacity(0.3),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -583,7 +710,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(context)
                     .colorScheme
-                    .surfaceVariant
+                    .surfaceContainerHighest
                     .withOpacity(0.3),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
@@ -627,42 +754,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showClearHistoryDialog(
-      BuildContext context, CaptionService captionService) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Clear History?',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        content: Text(
-          'This will delete all saved captions. This action cannot be undone.',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () {
-              captionService.clearHistory();
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('History cleared')),
-              );
-            },
-            child: Text(
-              'CLEAR',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _launchURL(String url) async {
     final Uri uri = Uri.parse(url);
     try {
@@ -685,150 +776,375 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _editUserName(BuildContext context, SettingsService settings) {
-    final controller = TextEditingController(text: settings.userName ?? '');
+  void _startEditUserName(SettingsService settings) {
+    setState(() {
+      _isEditingUserName = true;
+      _userNameController.text = settings.userName ?? '';
+    });
+  }
+
+  void _cancelEditUserName() {
+    setState(() {
+      _isEditingUserName = false;
+      _userNameController.clear();
+    });
+  }
+
+  void _saveUserName(SettingsService settings) {
+    final newName = _userNameController.text.trim();
+    settings.setUserName(newName.isEmpty ? null : newName);
+    setState(() {
+      _isEditingUserName = false;
+      _userNameController.clear();
+    });
+  }
+
+  void _startEditAccessKey() {
+    setState(() {
+      _isEditingAccessKey = true;
+      _accessKeyController.clear();
+      _accessKeyError = null;
+    });
+  }
+
+  void _cancelEditAccessKey() {
+    setState(() {
+      _isEditingAccessKey = false;
+      _accessKeyController.clear();
+      _accessKeyError = null;
+    });
+  }
+
+  Future<void> _saveAccessKey(SettingsService settings) async {
+    final accessKey = _accessKeyController.text.trim();
+
+    // Validate access key format first
+    final validationError = settings.validateAccessKey(accessKey);
+    if (validationError != null) {
+      setState(() {
+        _accessKeyError = validationError;
+      });
+      return;
+    }
+
+    setState(() {
+      _isTestingConnection = true;
+      _accessKeyError = null;
+    });
+
+    try {
+      // Test the connection using the room service
+      final roomService = context.read<RoomService>();
+      final testResult = await roomService.testConnectivityWithKey(accessKey);
+
+      if (testResult.success) {
+        // Connection successful - save the key and enable sharing
+        await settings.setAccessKey(accessKey);
+        await settings.setSharingEnabled(true);
+
+        // Exit edit mode
+        setState(() {
+          _isEditingAccessKey = false;
+          _accessKeyController.clear();
+        });
+
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Connected successfully!'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        // Connection failed - stay in edit mode and show error
+        setState(() {
+          _accessKeyError = testResult.error ?? 'Connection failed';
+        });
+      }
+    } catch (e) {
+      // Handle unexpected errors - stay in edit mode
+      setState(() {
+        _accessKeyError = 'Connection test failed: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTestingConnection = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _createNewRoom(
+      BuildContext context, SettingsService settings) async {
+    final roomService = context.read<RoomService>();
+
+    try {
+      // Generate a unique empty room code
+      final newCode = await roomService.generateUniqueRoomCode();
+
+      // Switch to the new room
+      settings.setRoomCode(newCode);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Created new room: $newCode'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating room: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _joinRoom(
+      BuildContext context, SettingsService settings, String code) async {
+    final upperCode = code.toUpperCase();
+
+    if (upperCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a room code')),
+      );
+      return;
+    }
+
+    if (upperCode.length > 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Room code must be 6 characters or less'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Clear the text field
+    _roomCodeController.clear();
+
+    // This will trigger the approval system if needed
+    settings.setRoomCode(upperCode);
+
+    // Show waiting dialog after a brief delay to allow room service to update
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (context.mounted) {
+        _showWaitingForApprovalDialog(context, upperCode);
+      }
+    });
+  }
+
+  void _showWaitingForApprovalDialog(BuildContext context, String roomCode) {
+    final roomService = context.read<RoomService>();
+
+    // Only show dialog if we're awaiting approval
+    if (!roomService.isAwaitingApproval) return;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Edit Your Name',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Your name',
-            hintText: 'Enter your name',
-          ),
-          textCapitalization: TextCapitalization.words,
-          onSubmitted: (value) {
-            settings.setUserName(value.trim().isEmpty ? null : value.trim());
-            Navigator.pop(context);
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              controller.dispose();
-              Navigator.pop(context);
-            },
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () {
-              settings.setUserName(controller.text.trim().isEmpty
-                  ? null
-                  : controller.text.trim());
-              controller.dispose();
-              Navigator.pop(context);
-            },
-            child: const Text('SAVE'),
-          ),
-        ],
+      barrierDismissible: false, // Prevent dismissing by tapping outside
+      builder: (dialogContext) => Consumer<RoomService>(
+        builder: (context, roomService, child) {
+          // If we're no longer awaiting approval, close the dialog
+          if (!roomService.isAwaitingApproval) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (Navigator.canPop(dialogContext)) {
+                Navigator.pop(dialogContext);
+              }
+            });
+          }
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Waiting for Approval',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Requesting to join room $roomCode',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Someone in the room needs to approve your request. This may take a moment...',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                if (roomService.approvalMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.2),
+                      ),
+                    ),
+                    child: Text(
+                      roomService.approvalMessage!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.7),
+                          ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton.icon(
+                onPressed: () {
+                  // Close dialog
+                  Navigator.pop(dialogContext);
+
+                  // Generate new room and join it (void method, don't await)
+                  _createNewRoom(context, context.read<SettingsService>());
+                },
+                icon: const Icon(Icons.close),
+                label: const Text('Abort & Create New Room'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  void _changeRoom(BuildContext context, SettingsService settings) {
-    final controller = TextEditingController();
-
+  void _showForgetKeyDialog(BuildContext context, SettingsService settings) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          'Change Room',
+          'Forget Access Key',
           style: Theme.of(context).textTheme.headlineMedium,
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Enter a room code to join, or leave empty to generate a new room.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Room code (optional)',
-                hintText: 'CAT123 or leave empty',
-                helperText: '3 letters + 3 numbers',
-              ),
-              textCapitalization: TextCapitalization.characters,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-                LengthLimitingTextInputFormatter(6),
-              ],
-            ),
-          ],
+        content: Text(
+          'Are you sure you want to forget the access key? This will immediately disconnect from other devices and switch to offline mode.',
+          style: Theme.of(context).textTheme.bodyLarge,
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              controller.dispose();
+            onPressed: () async {
+              final roomService = context.read<RoomService>();
+
+              // STEP 1: IMMEDIATELY remove access key so any reconnection attempts fail
+              await settings.setAccessKey(null);
+
+              // STEP 2: Disable sharing to stop background polling
+              await settings.setSharingEnabled(false);
+
+              // STEP 3: Clear room code to prevent auto-rejoin attempts
+              await settings.setRoomCode(null);
+
+              // STEP 4: Force multiple disconnection attempts to handle race conditions
+              for (int i = 0; i < 3; i++) {
+                roomService.resetConnectionState();
+                await roomService.disconnect();
+                roomService.userChooseGoOffline();
+
+                // Short delay between attempts
+                if (i < 2)
+                  await Future.delayed(const Duration(milliseconds: 200));
+              }
+
+              // STEP 5: Longer delay to let all async operations complete
+              await Future.delayed(const Duration(seconds: 1));
+
+              // STEP 6: Final verification - if still connected, log for debugging
+              if (roomService.isConnected || !roomService.isOfflineMode) {
+                debugPrint('⚠️ STILL CONNECTED AFTER DISCONNECT ATTEMPTS:');
+                debugPrint('  - isConnected: ${roomService.isConnected}');
+                debugPrint('  - isOfflineMode: ${roomService.isOfflineMode}');
+                debugPrint('  - roomCode: ${roomService.roomCode}');
+              }
+
               Navigator.pop(context);
-            },
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () {
-              final code = controller.text.trim();
-              if (code.isEmpty) {
-                // Generate new room code
-                final newCode = RoomCodeGenerator.generate();
-                settings.setRoomCode(newCode);
-                Navigator.pop(context);
+
+              // Show confirmation
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Generated new room: $newCode')),
-                );
-              } else if (code.length == 6 && _isValidRoomCode(code)) {
-                // Join existing room
-                settings.setRoomCode(code);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Changed to room: $code')),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Invalid room code format'),
-                    backgroundColor: Colors.red,
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.offline_bolt, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Text(roomService.isOfflineMode
+                            ? 'Successfully switched to solo offline mode'
+                            : 'Disconnection attempted - restart app if issues persist'),
+                      ],
+                    ),
+                    backgroundColor: roomService.isOfflineMode
+                        ? Colors.green
+                        : Colors.orange,
+                    duration: const Duration(seconds: 4),
                   ),
                 );
               }
-              controller.dispose();
             },
-            child: const Text('CHANGE'),
+            child: const Text('FORGET'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('CANCEL'),
           ),
         ],
       ),
     );
-  }
-
-  bool _isValidRoomCode(String code) {
-    if (code.length != 6) return false;
-    // Check first 3 characters are letters and last 3 are digits
-    final letterPart = code.substring(0, 3);
-    final digitPart = code.substring(3);
-    return RegExp(r'^[A-Z]{3}$').hasMatch(letterPart) &&
-        RegExp(r'^[0-9]{3}$').hasMatch(digitPart);
   }
 }
 
 // Responsive button row that switches to column layout when buttons don't fit
 class _ResponsiveButtonRow extends StatelessWidget {
-  final List<Widget> buttons;
-  final MainAxisAlignment alignment;
-  final double spacing;
-
   const _ResponsiveButtonRow({
     required this.buttons,
     this.alignment = MainAxisAlignment.spaceEvenly,
     this.spacing = 8.0,
   });
+  final List<Widget> buttons;
+  final MainAxisAlignment alignment;
+  final double spacing;
 
   @override
   Widget build(BuildContext context) {
@@ -836,8 +1152,8 @@ class _ResponsiveButtonRow extends StatelessWidget {
       builder: (context, constraints) {
         // Calculate approximate button widths to determine if they fit
         final screenWidth = constraints.maxWidth;
-        final buttonPadding = 16.0; // Estimated button padding
-        final iconWidth = 24.0; // Icon width
+        const buttonPadding = 16.0; // Estimated button padding
+        const iconWidth = 24.0; // Icon width
         final textWidth = _estimateTextWidth(context);
         final totalButtonWidth =
             buttons.length * (buttonPadding * 2 + iconWidth + textWidth);
@@ -884,13 +1200,12 @@ class _ResponsiveButtonRow extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
-  final String title;
-  final Widget child;
-
   const _SectionCard({
     required this.title,
     required this.child,
   });
+  final String title;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -919,15 +1234,14 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _SettingsTile extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final Widget trailing;
-
   const _SettingsTile({
     required this.title,
     this.subtitle,
     required this.trailing,
   });
+  final String title;
+  final String? subtitle;
+  final Widget trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -968,15 +1282,14 @@ class _SettingsTile extends StatelessWidget {
 }
 
 class _PrivacyItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-
   const _PrivacyItem({
     required this.icon,
     required this.title,
     required this.description,
   });
+  final IconData icon;
+  final String title;
+  final String description;
 
   @override
   Widget build(BuildContext context) {

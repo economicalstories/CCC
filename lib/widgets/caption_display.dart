@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/caption_service.dart';
 import '../services/settings_service.dart';
+import '../utils/theme_config.dart';
 
 class CaptionDisplay extends StatefulWidget {
   const CaptionDisplay({Key? key}) : super(key: key);
@@ -102,7 +103,7 @@ class _CaptionDisplayState extends State<CaptionDisplay> {
       },
       child: Container(
         width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
@@ -113,7 +114,7 @@ class _CaptionDisplayState extends State<CaptionDisplay> {
         ),
         child: SingleChildScrollView(
           controller: _scrollController,
-          padding: const EdgeInsets.all(32.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
@@ -121,8 +122,8 @@ class _CaptionDisplayState extends State<CaptionDisplay> {
               // Error message
               if (captionService.errorMessage != null)
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.error.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -132,9 +133,9 @@ class _CaptionDisplayState extends State<CaptionDisplay> {
                       Icon(
                         Icons.error_outline,
                         color: Theme.of(context).colorScheme.error,
-                        size: 24,
+                        size: 20,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           captionService.errorMessage!,
@@ -156,13 +157,10 @@ class _CaptionDisplayState extends State<CaptionDisplay> {
                   width: double.infinity,
                   child: Text(
                     'Hold the button below and speak, then click to edit',
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.4),
-                          fontStyle: FontStyle.italic,
-                        ),
+                    style: ThemeConfig.getCaptionTextStyle(
+                      settingsService.fontSize,
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                    ).copyWith(fontStyle: FontStyle.italic),
                     textAlign: TextAlign.start,
                   ),
                 )
@@ -174,20 +172,20 @@ class _CaptionDisplayState extends State<CaptionDisplay> {
                   maxLines: null,
                   readOnly: captionService.isStreaming,
                   enableInteractiveSelection: !captionService.isStreaming,
-                  style: Theme.of(context).textTheme.displayLarge,
+                  style: ThemeConfig.getCaptionTextStyle(
+                    settingsService.fontSize,
+                    Theme.of(context).colorScheme.onSurface,
+                  ),
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
                     hintText: captionService.isStreaming
                         ? 'Listening...'
                         : 'Tap to edit the transcript',
-                    hintStyle:
-                        Theme.of(context).textTheme.displayLarge?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.3),
-                            ),
+                    hintStyle: ThemeConfig.getCaptionTextStyle(
+                      settingsService.fontSize,
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                    ),
                   ),
                   onTap: () {
                     // Only focus when user explicitly taps

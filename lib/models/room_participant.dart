@@ -1,13 +1,31 @@
 class RoomParticipant {
   final String id;
   final String name;
-  final DateTime joinedAt;
+  final DateTime? joinedAt;
 
   RoomParticipant({
     required this.id,
     required this.name,
-    required this.joinedAt,
+    this.joinedAt,
   });
+
+  factory RoomParticipant.fromJson(Map<String, dynamic> json) {
+    return RoomParticipant(
+      id: json['id'],
+      name: json['name'],
+      joinedAt: json['joinedAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(json['joinedAt'])
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'joinedAt': joinedAt?.millisecondsSinceEpoch,
+    };
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -18,4 +36,7 @@ class RoomParticipant {
 
   @override
   int get hashCode => id.hashCode;
+
+  @override
+  String toString() => 'RoomParticipant($name)';
 }

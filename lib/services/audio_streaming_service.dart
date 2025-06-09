@@ -29,6 +29,7 @@ class AudioStreamingService {
   Function(String error)? onError;
   Function()? onConnected;
   Function()? onDisconnected;
+  Function()? onListeningStarted;
 
   // State
   bool _isConnected = false;
@@ -109,12 +110,17 @@ class AudioStreamingService {
           delay = const Duration(seconds: 2);
           break;
         case 'error_no_match':
-          // This is common and not really an error
+          // This is common - notify UI to show "..." but don't count as failure
+          print('No speech match detected - notifying UI');
+          onError?.call('No match: ${error.errorMsg}');
           _consecutiveFailures--;
           return;
         case 'error_speech_timeout':
-          delay = const Duration(milliseconds: 800);
-          break;
+          // For speech timeout, notify the UI to release the button
+          print('Speech timeout detected - notifying UI to release button');
+          onError?.call('Speech timeout: ${error.errorMsg}');
+          // Don't restart on timeout - let the UI handle the button release
+          return;
         case 'error_network':
           delay = const Duration(seconds: 3);
           break;
@@ -139,6 +145,8 @@ class AudioStreamingService {
       case 'listening':
         _consecutiveFailures = 0;
         _lastSuccessfulRecognition = DateTime.now();
+        // Notify that STT is actually ready for speech
+        onListeningStarted?.call();
         break;
       case 'notListening':
         // If listening stopped but we should continue, restart

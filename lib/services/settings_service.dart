@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../utils/theme_config.dart';
 
 class SettingsService extends ChangeNotifier {
@@ -10,8 +13,12 @@ class SettingsService extends ChangeNotifier {
   static const String _speechLocaleKey = 'speechLocale';
   static const String _userNameKey = 'userName';
   static const String _roomCodeKey = 'roomCode';
+  static const String _deviceUuidKey = 'deviceUuid';
+  static const String _sharingEnabledKey = 'sharingEnabled';
+  static const String _accessKeySecureKey = 'accessKey';
 
   late SharedPreferences _prefs;
+  static const _secureStorage = FlutterSecureStorage();
 
   // Settings
   double _fontSize = ThemeConfig.defaultFontSize;
@@ -21,6 +28,9 @@ class SettingsService extends ChangeNotifier {
   String _speechLocale = 'en_AU'; // Default to Australian English
   String? _userName;
   String? _roomCode;
+  String? _deviceUuid;
+  bool _sharingEnabled = false;
+  String? _accessKey;
 
   // Getters
   double get fontSize => _fontSize;
@@ -30,6 +40,11 @@ class SettingsService extends ChangeNotifier {
   String get speechLocale => _speechLocale;
   String? get userName => _userName;
   String? get roomCode => _roomCode;
+  String get deviceUuid => _deviceUuid ?? _generateAndStoreDeviceUuid();
+  bool get sharingEnabled => _sharingEnabled;
+  String? get accessKey => _accessKey;
+  String get partyKitServer =>
+      dotenv.env['PARTYKIT_SERVER'] ?? 'wss://ccc-relay.partykit.dev';
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -60,7 +75,30 @@ class SettingsService extends ChangeNotifier {
     // Load room code
     _roomCode = _prefs.getString(_roomCodeKey);
 
+    // Load or generate device UUID
+    _deviceUuid = _prefs.getString(_deviceUuidKey);
+    if (_deviceUuid == null) {
+      _deviceUuid = _generateAndStoreDeviceUuid();
+    }
+
+    // Load sharing enabled
+    _sharingEnabled = _prefs.getBool(_sharingEnabledKey) ?? false;
+
+    // Load access key from secure storage
+    if (_sharingEnabled) {
+      _accessKey = await _secureStorage.read(key: _accessKeySecureKey);
+    }
+
     notifyListeners();
+  }
+
+  String _generateAndStoreDeviceUuid() {
+    const uuid = Uuid();
+    final newUuid = uuid.v4();
+    _prefs.setString(_deviceUuidKey, newUuid);
+    _deviceUuid = newUuid;
+    debugPrint('Generated and stored new device UUID: $newUuid');
+    return newUuid;
   }
 
   Future<void> setFontSize(double size) async {
@@ -125,6 +163,57 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setSharingEnabled(bool enabled) async {
+    _sharingEnabled = enabled;
+    await _prefs.setBool(_sharingEnabledKey, enabled);
+
+    // If disabling sharing, clear the access key
+    if (!enabled) {
+      await _secureStorage.delete(key: _accessKeySecureKey);
+      _accessKey = null;
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> setAccessKey(String? key) async {
+    _accessKey = key?.trim();
+
+    if (_accessKey != null &&
+        _accessKey!.isNotEmpty &&
+        _isValidAccessKey(_accessKey!)) {
+      await _secureStorage.write(key: _accessKeySecureKey, value: _accessKey!);
+    } else {
+      await _secureStorage.delete(key: _accessKeySecureKey);
+      _accessKey = null;
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> forgetAccessKey() async {
+    await _secureStorage.delete(key: _accessKeySecureKey);
+    _accessKey = null;
+    notifyListeners();
+  }
+
+  bool _isValidAccessKey(String key) {
+    // Validate format: 4 words separated by hyphens
+    final parts = key.split('-');
+    return parts.length == 4 && parts.every((part) => part.trim().isNotEmpty);
+  }
+
+  String? validateAccessKey(String key) {
+    final trimmed = key.trim();
+    if (trimmed.isEmpty) return null;
+
+    if (!_isValidAccessKey(trimmed)) {
+      return 'Access key must be 4 words separated by hyphens (e.g., apple-sky-moon-path)';
+    }
+
+    return null; // Valid
+  }
+
   // Convenience methods for font size adjustment
   Future<void> increaseFontSize() async {
     final newSize =
@@ -146,5 +235,7 @@ class SettingsService extends ChangeNotifier {
     await setSpeechLocale('en_AU');
     await setUserName(null);
     await setRoomCode(null);
+    await setSharingEnabled(false);
+    await forgetAccessKey();
   }
 }

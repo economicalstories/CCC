@@ -1,7 +1,7 @@
 {
   "speechService": "google",
   "speechLocale": "en_AU", 
-  "fontSize": 48,
+  "fontSize": 32,
   "theme": "system",
   "saveTranscripts": true,
   "features": {

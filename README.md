@@ -59,6 +59,15 @@ Ultra-low-latency captions for live, in-person speech through a simple push-to-t
 - **Status Indicators** - Clear visual feedback (READY, LIVE, CONNECTING, ERROR)
 - **Australian English Default** - Optimized for Australian accents out of the box
 
+### 🎯 Coming Soon: Real-Time Room Sharing
+- **Join Caption Rooms** - Multiple people can view captions in the same room
+- **Live Caption Sync** - See captions from any speaker in your room in real-time
+- **Speaker Lock** - One person speaks at a time for clear conversations
+- **Participant List** - See who's in your room
+- **Connection Status** - Know when you're connected to others
+
+[See implementation details →](PARTYKIT_IMPLEMENTATION.md)
+
 ## 🔧 Quick Setup
 
 ### Using the PWA (ccc.economicalstories.com)
