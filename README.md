@@ -4,7 +4,7 @@
 
 ## 🚀 **Get CCC Now - Multiple Ways to Access**
 
-### 🌐 **Progressive Web App (Recommended)**
+### 🌐 **Progressive Web App (Easiest, but inconsistent handling of speech to text)**
 y**✨ Install instantly on any device:**
 - **Visit**: [ccc.economicalstories.com](https://ccc.economicalstories.com)
 - **Android**: Chrome → Menu → "Add to Home screen"
@@ -13,7 +13,7 @@ y**✨ Install instantly on any device:**
 
 *No download required - works offline after first visit!*
 
-### 📱 **Native Android App**
+### 📱 **Native Android App (More consistent handling of speech to tet)**
 **Download the APK for full native experience:**
 - **Get it**: [GitHub Releases](https://github.com/economicalstories/CCC/releases)
 - **Requirements**: Android 5.0+ (21 API level)
