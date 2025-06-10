@@ -1,6 +1,25 @@
-# Closed-Caption Companion (CCC)
+# Closed-Caption Companion (CCC) v1.2.0
 
 **Making stories accessible to everyone.** Real-time captions help those who are hard of hearing participate in conversations, presentations, and the stories happening around them.
+
+## 🆕 What's New in Version 1.2.0
+
+### Real-Time Room Sharing *(Now Available)*
+- **Join Caption Rooms**: Multiple people can view captions in the same room in real-time
+- **Live Caption Sync**: See captions from any speaker in your room instantly
+- **Dynamic Space Management**: Layout automatically optimizes for single-user vs multi-participant scenarios
+- **User Profiles**: Set your name for group caption sessions
+
+### Improved User Interface
+- **Space-Optimized Layout**: User gets more space when editing, others get dynamic allocation when multiple participants
+- **Floating Action Buttons**: Stop/Edit buttons now overlay text field to maximize vertical space
+- **Circular Button Design**: Consistent circular icons throughout the interface
+- **Accessibility Enhancement**: Flip button for single-user mode to point microphone toward speaker while reading
+
+### Technical Improvements
+- **Simplified Connection Logic**: Removed environment variable dependencies, hardcoded stable server endpoints
+- **Enhanced Error Handling**: Better connection status feedback and automatic recovery
+- **GitHub Integration**: Direct link to releases page for easy updates and APK downloads
 
 ## 🚀 **Get CCC Now - Multiple Ways to Access**
 

@@ -1,6 +1,8 @@
+import 'dart:async';
+
+import 'package:closed_caption_companion/utils/constants.dart';
 import 'package:closed_caption_companion/utils/theme_config.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -43,9 +45,7 @@ class SettingsService extends ChangeNotifier {
   String get deviceUuid => _deviceUuid ?? _generateAndStoreDeviceUuid();
   bool get sharingEnabled => _sharingEnabled;
   String? get accessKey => _accessKey;
-  String get partyKitServer =>
-      dotenv.env['PARTYKIT_SERVER'] ??
-      'wss://ccc-rooms.economicalstories.partykit.dev';
+  String get partyKitServer => AppConstants.partyKitServer;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();

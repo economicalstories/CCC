@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -433,7 +434,11 @@ class _DynamicCaptionLayout extends StatelessWidget {
     return Consumer<RoomService>(
       builder: (context, roomService, _) {
         // Calculate sizing with content awareness
-        final orderedParticipants = _calculateAdaptiveLayout(roomService);
+        final screenHeight = MediaQuery.of(context).size.height;
+        final baseFontSize =
+            Provider.of<SettingsService>(context, listen: false).fontSize;
+        final orderedParticipants =
+            _calculateAdaptiveLayout(roomService, screenHeight, baseFontSize);
 
         return Column(
           children: orderedParticipants.map((layoutInfo) {
@@ -476,7 +481,7 @@ class _DynamicCaptionLayout extends StatelessWidget {
   }
 
   List<_ParticipantLayoutInfo> _calculateAdaptiveLayout(
-      RoomService roomService) {
+      RoomService roomService, double screenHeight, double baseFontSize) {
     // Create layout info for each participant
     final List<_ParticipantLayoutInfo> layoutInfos =
         participants.map((participant) {
@@ -538,7 +543,7 @@ class _DynamicCaptionLayout extends StatelessWidget {
     }
 
     // Calculate fractions: collapsed participants get minimal space (1 line height)
-    // Content participants share the remaining space equally
+    // When multiple participants exist, minimize current user's space to give others more room
     const collapsedFraction = 0.08; // ~1 line height relative to screen
     const pendingFraction =
         0.15; // Pending participants need more space for buttons
@@ -552,18 +557,85 @@ class _DynamicCaptionLayout extends StatelessWidget {
     }
 
     final remainingSpace = 1.0 - totalCollapsedSpace;
-    final contentFraction = participantsWithContent.isNotEmpty
-        ? remainingSpace / participantsWithContent.length
-        : 0.0;
 
-    // Assign fractions
+    // NEW LOGIC: When multiple participants, minimize current user's bubble
+    if (participantsWithContent.isNotEmpty) {
+      // Find current user in content participants
+      _ParticipantLayoutInfo? currentUserContentInfo;
+      final otherContentParticipants = <_ParticipantLayoutInfo>[];
+
+      for (final info in participantsWithContent) {
+        if (info.participant.id == currentUserId) {
+          currentUserContentInfo = info;
+        } else {
+          otherContentParticipants.add(info);
+        }
+      }
+
+      if (currentUserContentInfo != null &&
+          otherContentParticipants.isNotEmpty) {
+        // Check if current user is actively editing - if so, give them ample space
+        final isCurrentUserEditing =
+            roomService.participantTextingStates[currentUserId] == true;
+
+        if (isCurrentUserEditing) {
+          // When editing: give current user greedy space for comfortable typing
+          const editingUserFraction =
+              0.7; // 70% for editing user - much more generous
+          final otherParticipantsSpace = remainingSpace - editingUserFraction;
+          final otherParticipantFraction = otherContentParticipants.isNotEmpty
+              ? otherParticipantsSpace / otherContentParticipants.length
+              : 0.0;
+
+          currentUserContentInfo.heightFraction = editingUserFraction;
+          for (final info in otherContentParticipants) {
+            info.heightFraction = otherParticipantFraction;
+          }
+        } else {
+          // Multiple participants: minimize current user, but ensure at least one text row
+          // Calculate minimum space needed for current user based on font size
+
+          // Estimate minimum height: font size + padding + header + input decorations
+          // This ensures at least one row of text is visible
+          final minUserHeight =
+              (baseFontSize * 2.5 + 80); // Font size * line height + UI chrome
+          final minUserFraction =
+              (minUserHeight / screenHeight).clamp(0.15, 0.4); // 15-40% max
+
+          // Use the larger of our preferred minimum (20%) or font-based minimum
+          final currentUserFraction = math.max(0.2, minUserFraction);
+
+          // Ensure we don't exceed available space
+          final actualUserFraction = math.min(currentUserFraction,
+              remainingSpace * 0.6); // Max 60% of remaining
+
+          final otherParticipantsSpace = remainingSpace - actualUserFraction;
+          final otherParticipantFraction = otherContentParticipants.isNotEmpty
+              ? otherParticipantsSpace / otherContentParticipants.length
+              : 0.0;
+
+          // Assign calculated space to current user
+          currentUserContentInfo.heightFraction = actualUserFraction;
+
+          // Assign remaining space to other participants
+          for (final info in otherContentParticipants) {
+            info.heightFraction = otherParticipantFraction;
+          }
+        }
+      } else {
+        // Single participant or only current user: use equal distribution
+        final contentFraction = remainingSpace / participantsWithContent.length;
+        for (final info in participantsWithContent) {
+          info.heightFraction = contentFraction;
+        }
+      }
+    }
+
+    // Assign fractions for collapsed participants
     for (final info in participantsWithoutContent) {
       final isPendingParticipant = info.participant.id == pendingParticipantId;
       info.heightFraction =
           isPendingParticipant ? pendingFraction : collapsedFraction;
-    }
-    for (final info in participantsWithContent) {
-      info.heightFraction = contentFraction;
     }
 
     return finalLayout;
@@ -1144,6 +1216,7 @@ class _SimpleUserTextBoxState extends State<_SimpleUserTextBox> {
   bool _isListening = false;
   bool _hasBeenCleared = false;
   bool _isEditing = false; // Start in view mode, require explicit edit button
+  bool _isFlipped = false; // For upside-down text mode in single user scenarios
 
   @override
   void initState() {
@@ -1163,6 +1236,15 @@ class _SimpleUserTextBoxState extends State<_SimpleUserTextBox> {
       setState(() {
         _isListening = false;
         _hasBeenCleared = false;
+      });
+    }
+
+    // Reset flip state when no longer in single user mode
+    final roomService = Provider.of<RoomService>(context, listen: false);
+    final isSingleUser = roomService.allParticipants.length <= 1;
+    if (_isFlipped && !isSingleUser) {
+      setState(() {
+        _isFlipped = false;
       });
     }
 
@@ -1277,10 +1359,11 @@ class _SimpleUserTextBoxState extends State<_SimpleUserTextBox> {
 
     return Container(
       margin: const EdgeInsets.all(8),
-      child: Column(
+      child: Stack(
         children: [
-          // Text field
-          Expanded(
+          // Text field - takes full available space with optional flip transform
+          Transform.rotate(
+            angle: _isFlipped ? 3.14159 : 0, // π radians = 180 degrees
             child: TextField(
               controller: _textController,
               scrollController: _scrollController,
@@ -1333,7 +1416,8 @@ class _SimpleUserTextBoxState extends State<_SimpleUserTextBox> {
                 fillColor: _isListening || widget.isActiveSpeaker
                     ? widget.speakerColor.withOpacity(0.1)
                     : Theme.of(context).colorScheme.surface,
-                contentPadding: const EdgeInsets.all(16),
+                contentPadding: const EdgeInsets.fromLTRB(
+                    16, 16, 80, 16), // Extra right padding for buttons
               ),
               style: TextStyle(
                 fontSize: widget.nameSize,
@@ -1342,112 +1426,161 @@ class _SimpleUserTextBoxState extends State<_SimpleUserTextBox> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          // Two Action Buttons
-          Row(
-            children: [
-              // Voice Button
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isListening
-                      ? _stopListening
-                      : (_isEditing
-                          ? null // Inactive when in text edit mode
-                          : (widget.isMicrophoneAvailable
-                              ? _startListening
-                              : null)),
-                  icon: Icon(
-                    _isListening
-                        ? Icons.stop
-                        : (widget.isMicrophoneAvailable
-                            ? Icons.mic
-                            : Icons.mic_off),
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                  label: Text(
-                    _isListening
-                        ? 'Stop Voice'
-                        : (widget.isMicrophoneAvailable
-                            ? 'Clear & Voice'
-                            : 'Enable Microphone'),
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isListening
-                        ? Colors.red
-                        : (_isEditing
-                            ? Colors.grey // Grey when text mode is active
-                            : (widget.isMicrophoneAvailable
-                                ? Colors.blue
-                                : Colors.grey)),
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                ),
-              ),
 
-              const SizedBox(width: 8),
+          // Floating circular buttons overlay at top-right
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Consumer<RoomService>(
+              builder: (context, roomService, _) {
+                final isSingleUser = roomService.allParticipants.length <= 1;
 
-              // Edit Text Button
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isListening
-                      ? null // Inactive when voice is recording
-                      : () {
-                          final willBeEditing =
-                              !_isEditing; // Calculate new state first
-                          debugPrint(
-                              '🔄 Edit button clicked: willBeEditing = $willBeEditing');
-
-                          // If we're currently listening, stop it first
-                          if (_isListening) {
-                            _stopListening();
-                          }
-
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Flip button (only in single user mode)
+                    if (isSingleUser) ...[
+                      GestureDetector(
+                        onTap: () {
                           setState(() {
-                            _isEditing = willBeEditing; // Toggle edit mode
-                            _isListening = false; // Ensure listening is off
+                            _isFlipped = !_isFlipped;
                           });
-
-                          // Update room service with editing state
-                          _toggleEditMode(willBeEditing);
-
-                          if (willBeEditing) {
-                            // Entering edit mode - request focus after widget rebuilds
-                            debugPrint(
-                                '📝 Entering edit mode, requesting focus...');
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              debugPrint(
-                                  '🎯 Requesting focus now - readOnly should be: ${!_isEditing}');
-                              _focusNode.requestFocus();
-                            });
-                          } else {
-                            // Exiting edit mode - remove focus and hide keyboard
-                            debugPrint('❌ Exiting edit mode, unfocusing...');
-                            _focusNode.unfocus();
-                          }
                         },
-                  icon: Icon(_isEditing ? Icons.edit_off : Icons.edit,
-                      color: Colors.white, size: 16),
-                  label: Text(
-                    _isEditing ? 'Exit Edit' : 'Edit Text',
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isEditing ? Colors.orange : Colors.green,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: _isFlipped
+                                ? Colors.purple
+                                : Colors.grey.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.screen_rotation,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+
+                    // Voice Button
+                    GestureDetector(
+                      onTap: _isListening
+                          ? _stopListening
+                          : (_isEditing
+                              ? null // Inactive when in text edit mode
+                              : (widget.isMicrophoneAvailable
+                                  ? _startListening
+                                  : null)),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: _isListening
+                              ? Colors.red
+                              : (_isEditing
+                                  ? Colors.grey.withOpacity(
+                                      0.6) // Semi-transparent when disabled
+                                  : (widget.isMicrophoneAvailable
+                                      ? Colors.blue
+                                      : Colors.grey)),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _isListening
+                              ? Icons.stop
+                              : (widget.isMicrophoneAvailable
+                                  ? Icons.mic
+                                  : Icons.mic_off),
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            ],
+
+                    const SizedBox(width: 6),
+
+                    // Edit Text Button
+                    GestureDetector(
+                      onTap: _isListening
+                          ? null // Inactive when voice is recording
+                          : () {
+                              final willBeEditing =
+                                  !_isEditing; // Calculate new state first
+                              debugPrint(
+                                  '🔄 Edit button clicked: willBeEditing = $willBeEditing');
+
+                              // If we're currently listening, stop it first
+                              if (_isListening) {
+                                _stopListening();
+                              }
+
+                              setState(() {
+                                _isEditing = willBeEditing; // Toggle edit mode
+                                _isListening = false; // Ensure listening is off
+                              });
+
+                              // Update room service with editing state
+                              _toggleEditMode(willBeEditing);
+
+                              if (willBeEditing) {
+                                // Entering edit mode - request focus after widget rebuilds
+                                debugPrint(
+                                    '📝 Entering edit mode, requesting focus...');
+                                WidgetsBinding.instance
+                                    .addPostFrameCallback((_) {
+                                  debugPrint(
+                                      '🎯 Requesting focus now - readOnly should be: ${!_isEditing}');
+                                  _focusNode.requestFocus();
+                                });
+                              } else {
+                                // Exiting edit mode - remove focus and hide keyboard
+                                debugPrint(
+                                    '❌ Exiting edit mode, unfocusing...');
+                                _focusNode.unfocus();
+                              }
+                            },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: _isListening
+                              ? Colors.grey.withOpacity(
+                                  0.6) // Semi-transparent when disabled
+                              : (_isEditing ? Colors.orange : Colors.green),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          _isEditing ? Icons.edit_off : Icons.edit,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -1471,20 +1604,62 @@ class _SimpleUserTextBoxState extends State<_SimpleUserTextBox> {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              hasText ? _textController.text : 'Your message here...',
-              style: TextStyle(
-                fontSize: widget.nameSize * 0.9,
-                color: hasText
-                    ? Theme.of(context).colorScheme.onSurface
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                fontStyle: hasText ? FontStyle.normal : FontStyle.italic,
+            child: Transform.rotate(
+              angle: _isFlipped ? 3.14159 : 0, // π radians = 180 degrees
+              child: Text(
+                hasText ? _textController.text : 'Your message here...',
+                style: TextStyle(
+                  fontSize: widget.nameSize * 0.9,
+                  color: hasText
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.5),
+                  fontStyle: hasText ? FontStyle.normal : FontStyle.italic,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 8),
+          // Flip button (only in single user mode)
+          Consumer<RoomService>(
+            builder: (context, roomService, _) {
+              final isSingleUser = roomService.allParticipants.length <= 1;
+
+              if (!isSingleUser) return const SizedBox.shrink();
+
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isFlipped = !_isFlipped;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: _isFlipped
+                            ? Colors.purple
+                            : Colors.grey.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.screen_rotation,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+              );
+            },
+          ),
           // Compact mic button
           GestureDetector(
             onTap: widget.isMicrophoneAvailable ? _startListening : null,

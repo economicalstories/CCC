@@ -5,9 +5,9 @@ import 'dart:math';
 import 'package:closed_caption_companion/models/room_message.dart';
 import 'package:closed_caption_companion/models/room_participant.dart';
 import 'package:closed_caption_companion/services/settings_service.dart';
+import 'package:closed_caption_companion/utils/constants.dart';
 import 'package:closed_caption_companion/utils/room_code_generator.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:ulid/ulid.dart';
 import 'package:uuid/uuid.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -40,10 +40,9 @@ enum ConnectionStatus {
 }
 
 class RoomService extends ChangeNotifier {
-  // Get PartyKit URL from settings/environment with access key support
+  // Get PartyKit URL from settings with fallback to constant
   String _getPartyKitUrl([String? accessKey]) {
-    return _settingsService?.partyKitServer ??
-        'wss://ccc-rooms.economicalstories.partykit.dev';
+    return _settingsService?.partyKitServer ?? AppConstants.partyKitServer;
   }
 
   Uri _buildWebSocketUrl(String roomCode, [String? accessKey]) {
@@ -2215,22 +2214,13 @@ class RoomService extends ChangeNotifier {
 
   // Test connectivity with a specific access key
   Future<ConnectionTestResult> testConnectivityWithKey(String accessKey) async {
-    // Get server URL - try settings service first, then environment, then fallback
+    // Get server URL - try settings service first, then fallback to constant
     String baseUrl;
     if (_settingsService != null) {
       baseUrl = _settingsService!.partyKitServer;
     } else {
-      // Settings service not available - try to read environment directly
-      try {
-        final envServer = dotenv.env['PARTYKIT_SERVER'];
-        if (envServer != null && envServer.isNotEmpty) {
-          baseUrl = envServer;
-        } else {
-          baseUrl = 'wss://ccc-rooms.economicalstories.partykit.dev';
-        }
-      } catch (e) {
-        baseUrl = 'wss://ccc-rooms.economicalstories.partykit.dev';
-      }
+      // Settings service not available - use constant fallback
+      baseUrl = AppConstants.partyKitServer;
     }
 
     // Build WebSocket URL with the provided access key - FORCE include for testing

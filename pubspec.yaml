@@ -52,9 +52,6 @@ dependencies:
 
   # Secure storage for access keys
   flutter_secure_storage: ^9.0.0
-  
-  # Environment variable support
-  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
