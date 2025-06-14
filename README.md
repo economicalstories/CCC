@@ -85,6 +85,8 @@ Ultra-low-latency captions for live, in-person speech through a simple push-to-t
 - **Participant List** - See who's in your room
 - **Connection Status** - Know when you're connected to others
 
+> **Note:** While the app includes full access to the 'solo mode' functionality, using the multi-user feature requires a PartyKit server access key. To get an access key or express interest in using this feature, please contact [contact@economicalstories.com](mailto:contact@economicalstories.com). Alternatively, you can set up your own PartyKit server by modifying the server configuration in `lib/utils/constants.dart` and deploying your own instance.
+
 [See implementation details →](PARTYKIT_IMPLEMENTATION.md)
 
 ## 🔧 Quick Setup
