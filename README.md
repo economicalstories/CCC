@@ -4,11 +4,16 @@
 
 ## 🆕 What's New in Version 1.2.0
 
-### Real-Time Room Sharing *(Now Available)*
-- **Join Caption Rooms**: Multiple people can view captions in the same room in real-time
+### Real-Time Room Sharing *(Now Available!)*
+- **Join Caption Rooms**: Multiple people can view and contribute captions in the same room in real-time
 - **Live Caption Sync**: See captions from any speaker in your room instantly
+- **Concurrent Speaking**: Multiple participants can speak and have their captions appear simultaneously
 - **Dynamic Space Management**: Layout automatically optimizes for single-user vs multi-participant scenarios
 - **User Profiles**: Set your name for group caption sessions
+- **Room Codes**: Create or join rooms using unique codes for easy sharing
+- **Participant List**: See who is in your room and their speaking status
+- **Connection Status**: Know when you're connected to others
+- **Approval/Denial**: (If enabled) Room owners can approve or deny join requests
 
 ### Improved User Interface
 - **Space-Optimized Layout**: User gets more space when editing, others get dynamic allocation when multiple participants
@@ -78,7 +83,7 @@ Ultra-low-latency captions for live, in-person speech through a simple push-to-t
 - **Status Indicators** - Clear visual feedback (READY, LIVE, CONNECTING, ERROR)
 - **Australian English Default** - Optimized for Australian accents out of the box
 
-### 🎯 Coming Soon: Real-Time Room Sharing
+### 🎯 Real-Time Room Sharing
 - **Join Caption Rooms** - Multiple people can view captions in the same room
 - **Live Caption Sync** - See captions from any speaker in your room in real-time
 - **Speaker Lock** - One person speaks at a time for clear conversations
@@ -183,16 +188,21 @@ If you have questions about our privacy practices:
 
 ## ⚙️ Configuration Options
 
-### Language Options
-- **Australian English** (en_AU) - Default, optimized for Australian accents
-- **US English** (en_US) - American English variant
-- **British English** (en_GB) - UK English variant
-- **Canadian English** (en_CA) - Canadian English variant
+### Language & Speech Recognition
+- **Speech Service**: Choose between Google Cloud STT (default), Azure Speech Service, or Device (offline) recognition
+- **Language/Locale**: Select from Australian English (en_AU, default), US English (en_US), British English (en_GB), or Canadian English (en_CA)
 
-### Accessibility Settings
-- **Font Size**: 16-120pt adjustable text
+### Accessibility & Display
+- **Font Size**: Adjustable from 16-120pt for optimal readability
 - **Theme**: Light, Dark, or System preference
-- **Transcript Saving**: Enable/disable 24-hour local storage
+
+### Multiuser & Room Sharing
+- **Sharing Mode**: Enable or disable real-time room sharing (multiuser mode)
+- **Room Code**: Join or create rooms using unique codes
+- **User Name**: Set your display name for group sessions
+- **Access Key**: Enter a PartyKit server access key to enable multiuser features (required for shared rooms)
+
+All configuration options are available in the app's Settings screen.
 
 ## 📊 Performance Characteristics
 
